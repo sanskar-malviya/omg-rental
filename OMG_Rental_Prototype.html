@@ -505,6 +505,38 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 }
 body.login-mode .side,body.login-mode .top,body.login-mode .bottomnav,body.login-mode #tourRoot{display:none}
 body.login-mode .app{grid-template-columns:1fr}
+/* Mobile review round */
+.dtabs{display:none}
+.invbar{position:sticky;top:var(--top);z-index:12;background:var(--bg);display:flex;flex-direction:column;gap:10px;padding:8px 0 10px;margin-bottom:6px}
+.more-btn{display:none!important}
+details.cgrp>summary{list-style:none;cursor:pointer}
+details.cgrp>summary::-webkit-details-marker{display:none}
+details.cgrp>summary>svg{transition:transform .2s;color:var(--muted)}
+details.cgrp[open]>summary>svg{transform:rotate(90deg)}
+details.cgrp:not([open])>summary{border-bottom:0}
+#calday{scroll-margin-top:80px}
+.bars{display:flex;align-items:flex-end;gap:3px;height:110px}
+.bars i{flex:1;min-width:3px;background:var(--brand);border-radius:4px 4px 0 0;opacity:.85}
+.cacts{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:760px){
+  .dtabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;background:var(--surface-2);padding:4px;border-radius:14px;border:1px solid var(--line)}
+  .dtabs button{height:44px;border:0;border-radius:10px;background:transparent;font:inherit;font-weight:800;font-size:14px;color:var(--ink-2);cursor:pointer}
+  .dtabs button.on{background:var(--surface);box-shadow:var(--sh-1);color:var(--ink)}
+  .dtabs button.danger{color:var(--danger)}
+  .dsec:not(.on){display:none!important}
+  .invbar{top:60px;margin:0 -16px 6px;padding:8px 16px 10px;box-shadow:0 8px 12px -12px rgba(0,0,0,.25)}
+  .drow .acts .sec{display:none!important}
+  .drow.showall .acts .sec{display:inline-flex!important}
+  .drow .acts .more-btn{display:inline-flex!important;flex:0 0 48px!important;justify-content:center;font-size:20px;letter-spacing:1px}
+  .tbl.slim th:not(:first-child):not(:last-child),.tbl.slim td:not(:first-child):not(:last-child){display:none}
+  .tbl.slim td,.tbl.slim th{padding:11px 14px}
+  .grid.g4.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.g4.two .card.pad{padding:12px 14px}
+  .grid.g4.two .num{font-size:19px!important}
+  .tabs{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:24px}
+  .cacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+  .cacts .btn{padding:0 6px;font-size:13.5px;gap:5px;min-width:0}
+}
 /* Public catalogue (QR scans, no login) */
 body.public-mode .page{max-width:1100px;margin:0 auto}
 .ptop{display:flex;align-items:center;gap:10px;padding:4px 0 16px;flex-wrap:wrap}
@@ -1440,7 +1472,7 @@ function renderTop() {
   $('#top').innerHTML = `
     <button class="btn btn-ghost icon-btn back" onclick="history.back()" aria-label="Back">${ic('left')}</button>
     <div class="top-title"><h2>${esc(TITLE.t)}</h2><small>${esc(TITLE.s)}</small></div>
-    <div class="top-search"><span class="s-ico">${ic('search', 20)}</span><input id="gsearch" value="${esc(GQ)}" placeholder="Mobile no., booking #, item code…" oninput="GQ=this.value" onkeydown="if(event.key==='Enter')globalSearch(this.value)" aria-label="Search"><button class="s-scan" onclick="scanModal()" aria-label="Scan item tag">${ic('scan', 20)}</button></div>
+    <div class="top-search"><span class="s-ico">${ic('search', 20)}</span><input id="gsearch" value="${esc(GQ)}" placeholder="Search" title="Mobile no., booking #, item code…" oninput="GQ=this.value" onkeydown="if(event.key==='Enter')globalSearch(this.value)" aria-label="Search"><button class="s-scan" onclick="scanModal()" aria-label="Scan item tag">${ic('scan', 20)}</button></div>
     ${LIVE ? syncChip() : `<div style="position:relative" data-menu><button class="clock" onclick="toggleMenu('clock')" title="Demo clock">${ic('clock', 18)}<div><small class="ct">Demo clock</small><span class="cd">${DAYS[NOW.getDay()]} ${fDateS(NOW)} · </span>${fTime(NOW)}</div></button>${MENU === 'clock' ? clockMenu : ''}</div>`}
     <div style="position:relative" data-menu><button class="who" onclick="toggleMenu('user')"><span class="avatar">${initials(CUR.name)}</span><span class="wn">${esc(CUR.name.split(' — ')[0])}<br><span class="tiny muted">${ROLE_LABEL[CUR.role]}</span></span></button>${MENU === 'user' ? (LIVE ? liveUserMenu() : userMenu) : ''}</div>`;
 }
@@ -1599,6 +1631,8 @@ function dueRow(b, mode) {
     meta = `<span class="mono">${b.no}</span><span>·</span><span>${fMob(c.mobile)}</span>${done ? `<span style="color:var(--good);font-weight:700">${ic('check', 13, 3)} Picked up ${b.pickedAt ? fTime(b.pickedAt) : ''}</span>` : m.outstanding ? `<span class="pill st-inspection">Collect ${rs(m.outstanding)}</span>` : `<span class="pill st-available">Fully paid</span>`}`;
     acts = done ? `<button class="btn btn-sm btn-ghost" onclick="go('#/booking/${b.no}')">View</button>` : `${callBtn(c, b.no)}${waBtn(b.no, 'pickup')}<button class="btn btn-sm btn-primary" onclick="handoverModal('${b.no}')">${ic('bag', 16)} Hand Over</button>`;
   }
+  acts = acts.replace(/class="btn btn-sm btn-wa"/g, 'class="btn btn-sm btn-wa sec"').replace(`<button class="btn btn-sm" onclick="go('#/booking/${b.no}')">Open</button>`, `<button class="btn btn-sm sec" onclick="go('#/booking/${b.no}')">Open</button>`);
+  if (acts.includes(' sec"')) acts = `<button class="btn btn-sm more-btn" aria-label="More actions" onclick="this.closest('.drow').classList.toggle('showall')">⋯</button>` + acts;
   return `<div class="drow ${mode === 'done' || (mode === 'pickup' && b.status !== 'reserved') ? 'done' : ''} ${mode === 'over' ? 'over' : ''}">
     <div class="row at"><div class="avatar" ${mode === 'over' ? 'style="background:var(--danger-soft);color:var(--danger)"' : ''}>${initials(c.name)}</div>
       <div class="grow"><div class="nm">${esc(c.name)}${b.userCreated ? ' <span class="pill st-reserved" style="height:22px">Your demo booking</span>' : ''}</div><div class="meta">${meta}</div><div class="itemchips" style="margin-top:7px">${codeChips(b)}</div></div></div>
@@ -1650,9 +1684,11 @@ function doHandover(no) {
   closeModal(); render(); toast(`${no} handed over to ${cust(b.customerId).name}`, 'good');
 }
 
+const DASH = { tab: null };
 function scrDashboard() {
   tourMark('dash');
   const d = dayData(), s = S();
+  const dt = DASH.tab === 'over' && !d.overdue.length ? 'ret' : DASH.tab || (d.overdue.length ? 'over' : 'ret');
   const states = {}; DB.items.forEach(it => { const k = istate(it); states[k] = (states[k] || 0) + 1; });
   const dl = atTime(NOW, s.returnDeadline), beforeDl = NOW < dl;
   const mine = DB.bookings.find(b => b.userCreated && sameDay(b.returnBy, NOW));
@@ -1685,8 +1721,9 @@ function scrDashboard() {
     <div class="eyebrow" style="margin:6px 0 10px">Today’s actions</div>
     <div class="actions-grid">
       <div class="stack s16">
-        ${d.overdue.length ? `<div class="overdue-card"><div class="oh">${ic('alert', 22)}<b>OVERDUE · ${d.overdue.length}</b><span class="grow" style="opacity:.85;font-size:13px">Not returned by the deadline. Late fee: ${esc(lateRuleText())}.</span></div>${d.overdue.map(b => dueRow(b, 'over')).join('')}</div>` : ''}
-        <div class="card hl-brand">
+        <div class="dtabs">${[d.overdue.length ? ['over', `Overdue ${d.overdue.length}`] : null, ['ret', `Returns ${d.dueAll.length}`], ['pick', `Pickups ${d.pickups.length}`]].filter(Boolean).map(([k, l]) => `<button class="${dt === k ? 'on' : ''} ${k === 'over' ? 'danger' : ''}" onclick="DASH.tab='${k}';render()">${l}</button>`).join('')}</div>
+        ${d.overdue.length ? `<div class="overdue-card dsec ${dt === 'over' ? 'on' : ''}"><div class="oh">${ic('alert', 22)}<b>OVERDUE · ${d.overdue.length}</b><span class="grow" style="opacity:.85;font-size:13px">Not returned by the deadline. Late fee: ${esc(lateRuleText())}.</span></div>${d.overdue.map(b => dueRow(b, 'over')).join('')}</div>` : ''}
+        <div class="card hl-brand dsec ${dt === 'ret' ? 'on' : ''}">
           <div class="due-head"><div><div class="eyebrow">Returns today</div><div class="big">${d.dueAll.length} <span style="font-size:15px;font-weight:700">rentals due</span></div></div>
             <div class="grow" style="min-width:160px"><div class="progress"><i style="width:${d.dueAll.length ? Math.round(d.dueDone.length / d.dueAll.length * 100) : 0}%"></i></div><div class="small muted" style="margin-top:6px">${d.dueDone.length} returned · ${d.dueWaiting.length} waiting${d.overdue.filter(b => sameDay(b.returnBy, NOW)).length ? ` · <b style="color:var(--danger)">${d.overdue.filter(b => sameDay(b.returnBy, NOW)).length} overdue ↑</b>` : ''}</div></div>
             <span class="deadline ${beforeDl ? '' : 'late'}">${ic('clock', 16)} Return deadline: before ${fHHMM(s.returnDeadline)} · ${beforeDl ? minsTxt((dl - NOW) / 60000) + ' left' : 'passed'}</span>
@@ -1694,7 +1731,7 @@ function scrDashboard() {
           ${d.dueWaiting.map(b => dueRow(b, 'due')).join('')}${d.dueDone.map(b => dueRow(b, 'done')).join('')}
           ${!d.dueAll.length ? emptyState('No returns due today') : ''}
         </div>
-        <div class="card">
+        <div class="card dsec ${dt === 'pick' ? 'on' : ''}">
           <div class="due-head"><div><div class="eyebrow">Pickups today</div><div class="big">${d.pickups.length} <span style="font-size:15px;font-weight:700">bookings</span></div></div><span class="grow"></span><span class="deadline" style="background:var(--info-soft);color:var(--info)">${ic('bag', 16)} Pickup window ${fHHMM(s.pickupStart)}–${fHHMM(s.pickupEnd)}</span></div>
           ${d.pickups.map(b => dueRow(b, 'pickup')).join('') || emptyState('No pickups scheduled today')}
         </div>
@@ -1723,7 +1760,7 @@ function ledgerDay(day) {
 }
 
 /* ---------- INVENTORY ---------- */
-const INV = { q: '', type: 'all', st: 'all', size: 'all', free: '', view: 'grid', codes: null };
+const INV = { q: '', type: 'all', st: 'all', size: 'all', free: '', view: 'grid', codes: null, limit: 24, key: '' };
 function scrInventory(r) {
   tourMark('inv');
   if (r.q.status) INV.st = r.q.status;
@@ -1740,17 +1777,19 @@ function scrInventory(r) {
       <button class="btn btn-lg" onclick="scanModal()">${ic('scan', 20)} Scan tag</button><button class="btn btn-lg" onclick="tagsModal(invFiltered().map(x=>x.it.code))">${ic('download', 20)} QR tags</button>
       ${can('inventory.edit') ? `<button class="btn btn-primary btn-lg" onclick="addItemModal()">${ic('plus', 20)} Add item</button>` : ''}</div>
     ${INV.codes ? `<div class="banner good" style="margin-bottom:14px">${ic('check')}<div class="grow">Showing the ${INV.codes.length} items from the booking you just closed — back on the rail.</div><button class="btn btn-sm" onclick="go('#/inventory')">Show all</button></div>` : ''}
-    <div class="filters">
-      <div class="row wrap">
-        <div class="input-wrap grow" style="min-width:240px"><span class="pre">${ic('search', 18)}</span><input class="input" id="invq" style="padding-left:40px" placeholder="Search code, colour, style… e.g. G021, green, mirror" value="${esc(INV.q)}" oninput="INV.q=this.value;renderInvResults()"></div>
-        <div class="field" style="min-width:250px"><div class="input-wrap"><span class="pre small">Free on</span><input type="date" class="input" style="padding-left:78px" value="${INV.free}" onchange="INV.free=this.value;render()" title="Show pieces free for an event date"></div></div>
-        <div class="seg"><button class="${INV.view === 'grid' ? 'on' : ''}" onclick="INV.view='grid';render()" aria-label="Grid">${ic('more', 18)}</button><button class="${INV.view === 'list' ? 'on' : ''}" onclick="INV.view='list';render()" aria-label="List">${ic('list', 18)}</button></div>
-      </div>
-      ${INV.free ? `<div class="banner info">${ic('calendar')}<div class="grow">Showing only pieces free for an event on <b>${fDate(parseIso(INV.free))}</b> (pickup same day from ${fHHMM(S().pickupStart)}, return next day by ${fHHMM(S().returnDeadline)}).</div><button class="btn btn-sm" onclick="INV.free='';render()">Clear</button></div>` : ''}
+    <div class="invbar">
+      <div class="input-wrap"><span class="pre">${ic('search', 18)}</span><input class="input" id="invq" style="padding-left:40px" placeholder="Search code, colour, style…" value="${esc(INV.q)}" oninput="INV.q=this.value;renderInvResults()"></div>
       <div class="chips scroll">${[['all', 'All types'], ...Object.entries(TYPES).map(([k, v]) => [k, v.short])].map(([k, l]) => `<button class="chip ${INV.type === k ? 'on' : ''}" onclick="INV.type='${k}';INV.size='all';render()">${l} <span class="c">${tcnt(k)}</span></button>`).join('')}
         <span style="width:1px;background:var(--line-2);margin:0 4px"></span>
         <select class="input" style="height:40px;width:auto;border-radius:99px" onchange="INV.size=this.value;render()"><option value="all">All sizes</option>${sizes.map(z => `<option ${INV.size === z ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select>
         <select class="input" style="height:40px;width:auto;border-radius:99px" title="Collection"><option>Garba 2026</option>${DB.collections.filter(c => c.status === 'planned').map(c => `<option disabled>${c.name} (planned)</option>`).join('')}</select></div>
+    </div>
+    <div class="filters">
+      <div class="row wrap">
+        <div class="field" style="min-width:250px"><div class="input-wrap"><span class="pre small">Free on</span><input type="date" class="input" style="padding-left:78px" value="${INV.free}" onchange="INV.free=this.value;render()" title="Show pieces free for an event date"></div></div>
+        <div class="seg"><button class="${INV.view === 'grid' ? 'on' : ''}" onclick="INV.view='grid';render()" aria-label="Grid">${ic('more', 18)}</button><button class="${INV.view === 'list' ? 'on' : ''}" onclick="INV.view='list';render()" aria-label="List">${ic('list', 18)}</button></div>
+      </div>
+      ${INV.free ? `<div class="banner info">${ic('calendar')}<div class="grow">Showing only pieces free for an event on <b>${fDate(parseIso(INV.free))}</b> (pickup same day from ${fHHMM(S().pickupStart)}, return next day by ${fHHMM(S().returnDeadline)}).</div><button class="btn btn-sm" onclick="INV.free='';render()">Clear</button></div>` : ''}
       <div class="chips scroll">${[['all', 'All statuses'], ...Object.keys(ITEM_STATUS).map(k => [k, ITEM_STATUS[k].short || ITEM_STATUS[k].label])].map(([k, l]) => `<button class="chip ${INV.st === k ? 'on' : ''}" onclick="INV.st='${k}';render()">${k !== 'all' ? `<span class="dot" style="width:8px;height:8px;border-radius:50%;background:${ITEM_STATUS[k].color}"></span>` : ''}${l} <span class="c">${cnt(k)}</span></button>`).join('')}</div>
     </div>
     <div id="invres"></div>`, after: renderInvResults };
@@ -1770,14 +1809,19 @@ function nextBooking(code) { return bookingsFor(code).filter(b => ['reserved', '
 function renderInvResults() {
   const el = $('#invres'); if (!el) return;
   const list = invFiltered();
-  const head = `<div class="row" style="margin-bottom:10px"><span class="small muted">Showing <b>${list.length}</b> of ${DB.items.length} pieces</span></div>`;
+  const key = JSON.stringify([INV.q, INV.type, INV.st, INV.size, INV.free, INV.codes, INV.view]);
+  if (key !== INV.key) { INV.key = key; INV.limit = 24; }
+  const shown = list.slice(0, INV.limit);
+  const more = list.length > shown.length ? `<button class="btn btn-lg btn-block" style="margin-top:14px" onclick="INV.limit+=24;renderInvResults()">Show more · ${list.length - shown.length} left</button>` : '';
+  const head = `<div class="row" style="margin-bottom:10px"><span class="small muted">Showing <b>${list.length}</b> of ${DB.items.length} pieces${shown.length < list.length ? ` · first ${shown.length} below` : ''}</span></div>`;
   if (!list.length) { el.innerHTML = head + `<div class="card">${emptyState('No pieces match', '<div class="small">Try clearing a filter.</div>')}</div>`; return; }
   if (INV.view === 'grid') {
-    el.innerHTML = head + `<div class="igrid">${list.map(({ it, st }) => icard(it, st)).join('')}</div>`;
+    el.innerHTML = head + `<div class="igrid">${shown.map(({ it, st }) => icard(it, st)).join('')}</div>`;
   } else {
-    el.innerHTML = head + `<div class="card tbl-wrap"><table class="tbl"><thead><tr><th></th><th>Code</th><th>Item</th><th>Size</th><th class="r">Rent</th><th class="r">Deposit</th><th>Status</th><th>Next booking</th></tr></thead><tbody>${list.map(({ it, st }) => { const nb = nextBooking(it.code); return `<tr class="click" onclick="go('#/item/${it.code}')"><td>${thumb(it, 'sm')}</td><td><span class="code">${it.code}</span></td><td><b>${esc(it.name)}</b><div class="tiny muted">${MODES[it.mode]}</div></td><td>${esc(it.size)}</td><td class="r num">${it.rent ? rs(it.rent) : '—'}</td><td class="r num">${it.deposit ? rs(it.deposit) : '—'}</td><td>${pill(st)}</td><td class="small">${nb ? `${nb.no}<div class="tiny muted">${fDateS(nb.pickupAt)}–${fDateS(nb.returnBy)}</div>` : '<span class="muted">—</span>'}</td></tr>`; }).join('')}</tbody></table></div>`;
+    el.innerHTML = head + `<div class="card tbl-wrap"><table class="tbl"><thead><tr><th></th><th>Code</th><th>Item</th><th>Size</th><th class="r">Rent</th><th class="r">Deposit</th><th>Status</th><th>Next booking</th></tr></thead><tbody>${shown.map(({ it, st }) => { const nb = nextBooking(it.code); return `<tr class="click" onclick="go('#/item/${it.code}')"><td>${thumb(it, 'sm')}</td><td><span class="code">${it.code}</span></td><td><b>${esc(it.name)}</b><div class="tiny muted">${MODES[it.mode]}</div></td><td>${esc(it.size)}</td><td class="r num">${it.rent ? rs(it.rent) : '—'}</td><td class="r num">${it.deposit ? rs(it.deposit) : '—'}</td><td>${pill(st)}</td><td class="small">${nb ? `${nb.no}<div class="tiny muted">${fDateS(nb.pickupAt)}–${fDateS(nb.returnBy)}</div>` : '<span class="muted">—</span>'}</td></tr>`; }).join('')}</tbody></table></div>`;
     labelTables(el);
   }
+  if (more) el.insertAdjacentHTML('beforeend', more);
 }
 function icard(it, st) {
   return `<button class="icard" onclick="go('#/item/${it.code}')"><div class="img" style="${tileBg(it.hex)}">${pill(st)}${it.mode !== 'rent' ? `<span class="pill mode" style="background:#fff;color:var(--ink-2)">${it.mode === 'sale' ? 'Sale only' : 'Rent + Sale'}</span>` : ''}${photoOf(it.code) ? `<img src="${photoOf(it.code)}" alt="" loading="lazy">` : art(it.type, it.hex, 118)}</div>
@@ -1820,6 +1864,7 @@ function saveNewItem() {
 }
 
 /* ---------- ITEM DETAIL ---------- */
+const ITEMX = { all: null, log: null };
 function scrItem(code) {
   const it = item(code); if (!it) return { t: 'Not found', html: emptyState('Item not found', `<a href="#/inventory">Back to inventory</a>`) };
   if (code === 'G021') tourMark('g021');
@@ -1882,10 +1927,10 @@ function scrItem(code) {
         </div>
         <div class="card"><div class="card-h"><h3 class="grow">Rental history</h3><span class="muted small">${history.length} this season</span></div>
           <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Booking</th><th>Customer</th><th>Event</th><th class="r">Revenue</th><th>Returned as</th></tr></thead><tbody>
-          ${history.map(b => { const r = b.returnInfo && b.returnInfo.lines[code]; const cd = r ? CONDS.find(c => c.k === r.cond) : null; return `<tr class="click" onclick="go('#/booking/${b.no}')"><td><b>${b.no}</b></td><td>${esc(cust(b.customerId).name)}</td><td>${fDateS(b.eventDate)}</td><td class="r num">${rs(b.lines.find(l => l.code === code).alloc)}</td><td>${cd ? `${cd.label}${+r.charge ? ' · ' + rs(r.charge) : ''}` : bpill(b)}</td></tr>`; }).join('') || `<tr><td colspan="5">${emptyState('No rentals yet this season')}</td></tr>`}
-          </tbody></table></div></div>
+          ${history.slice(0, ITEMX.all === code ? 999 : 3).map(b => { const r = b.returnInfo && b.returnInfo.lines[code]; const cd = r ? CONDS.find(c => c.k === r.cond) : null; return `<tr class="click" onclick="go('#/booking/${b.no}')"><td><b>${b.no}</b></td><td>${esc(cust(b.customerId).name)}</td><td>${fDateS(b.eventDate)}</td><td class="r num">${rs(b.lines.find(l => l.code === code).alloc)}</td><td>${cd ? `${cd.label}${+r.charge ? ' · ' + rs(r.charge) : ''}` : bpill(b)}</td></tr>`; }).join('') || `<tr><td colspan="5">${emptyState('No rentals yet this season')}</td></tr>`}
+          </tbody></table></div>${history.length > 3 && ITEMX.all !== code ? `<button class="btn btn-ghost btn-block" onclick="ITEMX.all='${code}';render()">See all ${history.length} rentals</button>` : ''}</div>
         <div class="card"><div class="card-h"><h3 class="grow">Sale history</h3></div>${sales.length ? `<div class="list">${sales.map(s => `<div class="lrow"><div class="grow"><b>${s.id}</b> · ${s.customerId ? esc(cust(s.customerId).name) : s.walkIn}<div class="tiny muted">${fDT(s.at)} · ${s.mode} · by ${esc(s.by)}</div></div><b>${rs(s.price)}</b></div>`).join('')}</div>` : emptyState('Not sold', it.mode === 'rent' ? '<div class="small">Rental-only piece</div>' : '')}</div>
-        <div class="card"><div class="card-h"><h3 class="grow">Activity log</h3><span class="tiny muted">append-only</span></div><div class="list mini-list">${it.log.slice().sort((a, b) => b.at - a.at).slice(0, 12).map(l => `<div class="lrow"><div class="grow small">${esc(l.text)}<div class="tiny muted">${fDT(l.at)} · ${esc(l.by)}</div></div></div>`).join('') || emptyState('No activity')}</div></div>
+        <div class="card"><div class="card-h"><h3 class="grow">Activity log</h3><span class="tiny muted">append-only</span></div><div class="list mini-list">${it.log.slice().sort((a, b) => b.at - a.at).slice(0, ITEMX.log === code ? 500 : 3).map(l => `<div class="lrow"><div class="grow small">${esc(l.text)}<div class="tiny muted">${fDT(l.at)} · ${esc(l.by)}</div></div></div>`).join('') || emptyState('No activity')}</div>${it.log.length > 3 && ITEMX.log !== code ? `<button class="btn btn-ghost btn-block" onclick="ITEMX.log='${code}';render()">See all ${it.log.length} entries</button>` : ''}</div>
       </div>
     </div>` };
 }
@@ -2069,9 +2114,9 @@ function scrCustomer(id) {
     <div class="row" style="margin-bottom:14px"><button class="btn btn-ghost btn-sm" onclick="go('#/customers')">${ic('left', 16)} Customers</button></div>
     <div class="card pad" style="margin-bottom:16px"><div class="row wrap" style="gap:16px"><div class="avatar" style="width:64px;height:64px;font-size:22px">${initials(c.name)}</div>
       <div class="grow"><h1 class="pg" style="font-size:26px">${esc(c.name)}</h1><div class="muted small" style="margin-top:4px">${c.id} · ${fMob(c.mobile)}${c.whatsapp !== c.mobile ? ' · WA ' + fMob(c.whatsapp) : ''}${c.email ? ' · ' + esc(c.email) : ''}${c.address ? ' · ' + esc(c.address) : ''} · since ${c.since}</div><div class="row wrap" style="margin-top:8px;gap:6px">${flags}</div></div>
-      <a class="btn btn-lg" href="tel:+91${c.mobile}">${ic('phone', 18)} Call</a><a class="btn btn-lg btn-wa" target="_blank" rel="noopener" href="https://wa.me/91${c.whatsapp}">${ic('wa', 18)} WhatsApp</a><button class="btn btn-primary btn-lg" onclick="startRental({customerId:'${c.id}'})">${ic('plus', 18)} New Rental</button></div></div>
+      <div class="cacts"><a class="btn btn-lg" href="tel:+91${c.mobile}">${ic('phone', 18)} Call</a><a class="btn btn-lg btn-wa" target="_blank" rel="noopener" href="https://wa.me/91${c.whatsapp}">${ic('wa', 18)} WhatsApp</a><button class="btn btn-primary btn-lg" onclick="startRental({customerId:'${c.id}'})">${ic('plus', 18)} Rental</button></div></div></div>
     ${idCard(c)}
-    <div class="grid g4" style="margin-bottom:16px">
+    <div class="grid g4 two" style="margin-bottom:16px">
       <div class="card pad"><div class="eyebrow">Rentals</div><div style="font-size:26px;font-weight:800">${s.bs.length}</div></div>
       <div class="card pad"><div class="eyebrow">Total spent</div><div style="font-size:26px;font-weight:800">${rs(s.spent)}</div></div>
       <div class="card pad"><div class="eyebrow">Deposit held now</div><div style="font-size:26px;font-weight:800">${rs(s.held)}</div></div>
@@ -2205,8 +2250,8 @@ function wizStep2() {
   <div class="card pad stack"><div class="row between"><h3>Packages</h3><span class="hint">Package price · pieces tracked individually</span></div>
     <div class="pkgs">${DB.packages.map(p => `<button class="pkg ${p.key === 'queen' ? 'queen' : ''}" onclick="wizAddPkg('${p.key}')"><b>${esc(p.name)}</b><span class="p">${rs(p.price)}</span><span class="inc">${esc(p.desc)}</span></button>`).join('')}</div></div>
   <div class="card pad stack"><div class="row between"><h3>Add items</h3><span class="hint">Only pieces free for these dates can be added</span></div>
-    <div class="input-wrap"><span class="pre">${ic('search', 18)}</span><input class="input" id="wiq" style="padding-left:40px" placeholder="Type code (C043), colour or style…" value="${esc(W.iq)}" oninput="W.iq=this.value;wizItemRes()" onkeydown="if(event.key==='Enter'){const c=codeFromScan(this.value);if(c&&item(c)&&!W.lines.some(l=>l.code===c)){wizAdd(c);return}const f=document.querySelector('#wires [data-add]');if(f)f.click()}" autocomplete="off"></div>
-    <button class="btn btn-lg btn-soft" onclick="scanModal(c=>{ if(W.lines.some(l=>l.code===c)) return toast(c+' is already in this booking'); wizAdd(c); })">${ic('scan', 18)} Scan tag to add</button>
+    <div class="row" style="gap:8px;flex-wrap:nowrap"><div class="input-wrap grow"><span class="pre">${ic('search', 18)}</span><input class="input" id="wiq" style="padding-left:40px" placeholder="Type code (C043), colour or style…" value="${esc(W.iq)}" oninput="W.iq=this.value;wizItemRes()" onkeydown="if(event.key==='Enter'){const c=codeFromScan(this.value);if(c&&item(c)&&!W.lines.some(l=>l.code===c)){wizAdd(c);return}const f=document.querySelector('#wires [data-add]');if(f)f.click()}" autocomplete="off"></div>
+    <button class="btn btn-lg btn-soft" onclick="scanModal(c=>{ if(W.lines.some(l=>l.code===c)) return toast(c+' is already in this booking'); wizAdd(c); })">${ic('scan', 20)} Scan</button></div>
     <div class="chips scroll">${[['all', 'All'], ...Object.entries(TYPES).map(([k, v]) => [k, v.short])].map(([k, l]) => `<button class="chip ${W.itype === k ? 'on' : ''}" onclick="W.itype='${k}';render()">${l}</button>`).join('')}</div>
     <div id="wires"></div></div>
   <div class="card"><div class="card-h">${ic('bag', 20)}<h3 class="grow">In this booking</h3><span class="badge">${W.lines.length}</span></div><div class="card-b" id="wcart"></div></div>
@@ -2551,18 +2596,19 @@ function scrCalendar() {
   const on = (d, k) => live.filter(b => sameDay(b[k], d));
   const cells = [...Array(weeks * 7)].map((_, i) => {
     const d = addDays(start, i), p = on(d, 'pickupAt').length, e = on(d, 'eventDate').length, r = on(d, 'returnBy').length;
-    return `<button class="day ${d.getMonth() !== CAL.m ? 'out' : ''} ${sameDay(d, NOW) ? 'today' : ''} ${isoDay(d) === CAL.sel ? 'sel' : ''}" onclick="CAL.sel='${isoDay(d)}';render()"><span class="n">${d.getDate()}</span>${festivalNightOf(d) ? `<span class="tiny" style="color:var(--accent-2);font-weight:800">✦<span class="lbl2"> Night</span> ${festivalNightOf(d)}</span>` : ''}
+    return `<button class="day ${d.getMonth() !== CAL.m ? 'out' : ''} ${sameDay(d, NOW) ? 'today' : ''} ${isoDay(d) === CAL.sel ? 'sel' : ''}" onclick="CAL.sel='${isoDay(d)}';render();if(innerWidth<=760)setTimeout(()=>{const x=document.getElementById('calday');if(x)x.scrollIntoView({behavior:'smooth',block:'start'})},30)"><span class="n">${d.getDate()}</span>${festivalNightOf(d) ? `<span class="tiny" style="color:var(--accent-2);font-weight:800">✦<span class="lbl2"> Night</span> ${festivalNightOf(d)}</span>` : ''}
       ${p ? `<span class="ev p">↑ ${p}<span class="lbl2"> pickup</span></span>` : ''}${e ? `<span class="ev e">★ ${e}<span class="lbl2"> event</span></span>` : ''}${r ? `<span class="ev r">↓ ${r}<span class="lbl2"> return</span></span>` : ''}</button>`;
   }).join('');
   const sd = parseIso(CAL.sel);
-  const grp = (k, label, cls) => { const bs = on(sd, k); return `<div class="card"><div class="card-h"><span class="pill ${cls}">${label}</span><span class="grow"></span><b>${bs.length}</b></div><div class="list mini-list">${bs.map(b => `<div class="lrow click" onclick="go('#/booking/${b.no}')"><div class="grow"><b>${esc(cust(b.customerId).name)}</b> <span class="tiny muted">${b.no}</span><div class="itemchips" style="margin-top:4px">${codeChips(b)}</div></div>${bpill(b)}</div>`).join('') || '<div class="empty small">None</div>'}</div></div>`; };
+  const wide = window.innerWidth > 760, firstK = ['pickupAt', 'eventDate', 'returnBy'].find(k => on(sd, k).length);
+  const grp = (k, label, cls) => { const bs = on(sd, k); return `<details class="card cgrp" ${wide || k === firstK ? 'open' : ''}><summary class="card-h"><span class="pill ${cls}">${label}</span><span class="grow"></span><b>${bs.length}</b>${ic('right', 16)}</summary><div class="list mini-list">${bs.map(b => `<div class="lrow click" onclick="go('#/booking/${b.no}')"><div class="grow"><b>${esc(cust(b.customerId).name)}</b> <span class="tiny muted">${b.no}</span><div class="itemchips" style="margin-top:4px">${codeChips(b)}</div></div>${bpill(b)}</div>`).join('') || '<div class="empty small">None</div>'}</div></details>`; };
   return {
     t: 'Calendar', s: `${MONTHS_L[CAL.m]} ${CAL.y}`, html: `
     <div class="pagehead"><div class="grow"><h1 class="pg">Rental calendar</h1><p>Pickups, Garba nights and returns. Tap a day to see its bookings.</p></div>
       <div class="row"><button class="btn icon-btn" onclick="CAL.m--;if(CAL.m<0){CAL.m=11;CAL.y--};render()" aria-label="Previous month">${ic('left')}</button><b style="min-width:150px;text-align:center;font-size:17px">${MONTHS_L[CAL.m]} ${CAL.y}</b><button class="btn icon-btn" onclick="CAL.m++;if(CAL.m>11){CAL.m=0;CAL.y++};render()" aria-label="Next month">${ic('right')}</button><button class="btn" onclick="CAL.y=NOW.getFullYear();CAL.m=NOW.getMonth();CAL.sel=isoDay(NOW);render()">Today</button></div></div>
     <div class="split"><div class="card pad"><div class="legend" style="margin-bottom:12px"><span><i style="background:var(--info)"></i>↑ Pickups (2–3 PM)</span><span><i style="background:var(--accent)"></i>★ Event nights</span><span><i style="background:var(--good)"></i>↓ Returns (before 12 PM)</span></div>
       <div class="cal">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="dow">${d}</div>`).join('')}${cells}</div></div>
-      <div class="stack s16"><h3 style="font-family:var(--display);font-size:20px">${fDate(sd)}</h3>${grp('pickupAt', 'Pickups', 'st-reserved')}${grp('eventDate', 'Event night', 'st-inspection')}${grp('returnBy', 'Returns due', 'st-available')}</div></div>` };
+      <div class="stack s16"><h3 id="calday" style="font-family:var(--display);font-size:20px">${fDate(sd)}</h3>${grp('pickupAt', 'Pickups', 'st-reserved')}${grp('eventDate', 'Event night', 'st-inspection')}${grp('returnBy', 'Returns due', 'st-available')}</div></div>` };
 }
 
 /* ---------- SALES ---------- */
@@ -2747,11 +2793,16 @@ function scrReports(r) {
       <button class="btn btn-lg" onclick="exportReport()">${ic('download', 18)} Export CSV</button></div>
     <div class="tabs">${tabs.map(([k, l]) => `<button class="${REP.tab === k ? 'on' : ''}" onclick="go('#/reports/${k}')">${l}</button>`).join('')}</div>
     ${REP.tab === 'items' ? typeChips(REP.type || 'all', "REP.type='%';render()", DB.items) : ''}
-    <div class="grid g4" style="margin-bottom:16px">${d.tiles.map(([l, v]) => `<div class="card pad"><div class="eyebrow">${l}</div><div style="font-size:24px;font-weight:800;margin-top:4px" class="num">${v}</div></div>`).join('')}</div>
+    <div class="grid g4 two" style="margin-bottom:16px">${d.tiles.map(([l, v]) => `<div class="card pad"><div class="eyebrow">${l}</div><div style="font-size:24px;font-weight:800;margin-top:4px" class="num">${v}</div></div>`).join('')}</div>
+    ${REP.tab === 'revenue' && d.rows.length > 1 ? repBars(d) : ''}
     ${d.note ? `<div class="banner info" style="margin-bottom:14px;font-weight:500">${ic('alert', 18)} ${d.note}</div>` : ''}
-    <div class="card tbl-wrap"><table class="tbl nowrap"><thead><tr>${d.cols.map(c => `<th class="${c.startsWith('₹') || /Rentals|ROI|Late \(/.test(c) ? 'r' : ''}">${c.replace('₹', '')}</th>`).join('')}</tr></thead>
+    <div class="card tbl-wrap"><table class="tbl nowrap ${REP.tab === 'revenue' ? 'slim' : ''}"><thead><tr>${d.cols.map(c => `<th class="${c.startsWith('₹') || /Rentals|ROI|Late \(/.test(c) ? 'r' : ''}">${c.replace('₹', '')}</th>`).join('')}</tr></thead>
       <tbody>${d.rows.map(row => `<tr ${REP.tab === 'items' ? `class="click" onclick="go('#/item/${row[0]}')"` : ''}>${row.map((v, i) => { const c = d.cols[i]; const hide = REP.tab === 'items' && c === '₹Purchase cost' && !can('inventory.cost'); return `<td class="${c.startsWith('₹') || typeof v === 'number' ? 'r num' : ''}">${hide ? '🔒' : c === 'ROI %' ? `<b style="color:${v >= 0 ? 'var(--good)' : 'var(--danger)'}">${v > 0 ? '+' : ''}${v}%</b>` : fmt(c, v)}</td>`; }).join('')}</tr>`).join('') || `<tr><td colspan="${d.cols.length}">${emptyState('No data in this period')}</td></tr>`}</tbody>
       ${d.foot ? `<tfoot><tr>${d.foot.map((v, i) => `<td class="${i ? 'r num' : ''}">${i ? rs(v) : v}</td>`).join('')}</tr></tfoot>` : ''}</table></div>` };
+}
+function repBars(d) {
+  const tot = d.rows.map(r => +r[r.length - 1] || 0), mx = Math.max(1, ...tot);
+  return `<div class="card pad" style="margin-bottom:16px"><div class="row between" style="margin-bottom:10px"><h3>Daily revenue</h3><span class="tiny muted">best day ${rs(mx)}</span></div><div class="bars">${d.rows.map((r, i) => `<i style="height:${Math.max(2, Math.round(tot[i] / mx * 100))}%" title="${esc(String(r[0]))}: ${rs(tot[i])}"></i>`).join('')}</div><div class="row between tiny muted" style="margin-top:6px"><span>${esc(String(d.rows[0][0]))}</span><span>${esc(String(d.rows[d.rows.length - 1][0]))}</span></div></div>`;
 }
 function downloadCSV(name, cols, rows) {
   const q = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
@@ -3355,7 +3406,7 @@ function pubList() {
   if (day) list = list.filter(i => pubFree(i.code, day));
   const nights = festivalNights().filter(f => f.d >= sod(new Date()));
   return `<div class="stack s16">
-    <div><h1 class="pg">Our collection</h1><p class="muted" style="margin:4px 0 0">Tap any piece to see photos and the dates it is free. Visit the shop to book.</p></div>
+    <div class="row wrap" style="gap:10px;align-items:flex-end"><div class="grow"><h1 class="pg">Our collection</h1><p class="muted" style="margin:4px 0 0">Tap any piece to see photos and the dates it is free. Visit the shop to book.</p></div><a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`${PUB.shop.name || 'OMG Rental'} collection: ${location.origin + location.pathname}#/catalog`)}">${ic('wa', 18)} Share collection</a></div>
     <div class="row wrap" style="gap:8px"><div class="input-wrap grow" style="min-width:200px"><span class="pre">${ic('search', 18)}</span><input class="input" style="padding-left:42px" placeholder="Search colour, style, code…" value="${esc(PUBQ.q)}" onchange="PUBQ.q=this.value;renderPublic()"></div>
       <label class="row" style="gap:6px"><span class="small muted">Free on</span><input class="input" type="date" style="width:auto" value="${PUBQ.date}" onchange="PUBQ.date=this.value;renderPublic()"></label>${PUBQ.date ? `<button class="btn btn-sm" onclick="PUBQ.date='';renderPublic()">${ic('x', 14)} Clear date</button>` : ''}</div>
     ${nights.length ? `<div class="chips scroll">${nights.map(f => { const v = isoDay(f.d); return `<button class="chip ${PUBQ.date === v ? 'on' : ''}" onclick="PUBQ.date='${v}';renderPublic()">Night ${f.n} · ${fDateS(f.d)}</button>`; }).join('')}</div>` : ''}
@@ -3400,7 +3451,12 @@ function pubItem(code) {
         ${nights.length ? `<div class="lbl">${esc(S().festivalName || 'Festival')}</div><div class="chips scroll" style="margin-bottom:14px">${nights.map(f => `<span class="chip ${pubFree(code, f.d) ? '' : 'off'}" style="${pubFree(code, f.d) ? 'background:var(--good-soft);color:var(--good)' : 'background:var(--danger-soft);color:var(--danger);text-decoration:line-through'}">Night ${f.n} · ${fDateS(f.d)}</span>`).join('')}</div>` : ''}
         ${pubCal(code)}</div>`}
       <div class="banner info">${ic('hanger')} <span>Like this piece? Visit <b>${esc(PUB.shop.name || 'OMG Rental')}</b>${PUB.shop.city ? ', ' + esc(PUB.shop.city) : ''} and ask for code <b class="mono">${it.code}</b>.</span></div>
+      <div class="row wrap" style="gap:8px"><a class="btn btn-lg btn-wa grow" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`${it.name} (${it.code}) at ${PUB.shop.name || 'OMG Rental'}${PUB.shop.city ? ', ' + PUB.shop.city : ''}. See photos and free dates: ${tagText(it.code)}`)}">${ic('wa', 18)} Share on WhatsApp</a>${navigator.share ? `<button class="btn btn-lg" onclick="pubShare('${it.code}')">Share…</button>` : ''}</div>
     </div></div>`;
+}
+function pubShare(code) {
+  const it = PUB.items.find(i => i.code === code); if (!it) return;
+  navigator.share({ title: it.name, text: `${it.name} (${it.code}) at ${PUB.shop.name || 'OMG Rental'}`, url: tagText(code) }).catch(() => { });
 }
 
 /* =====================================================================
@@ -3436,7 +3492,7 @@ function render() {
 }
 function labelTables(root) {
   if (!root) return;
-  root.querySelectorAll('table.tbl:not(.perm)').forEach(t => {
+  root.querySelectorAll('table.tbl:not(.perm):not(.slim)').forEach(t => {
     const hs = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
     t.querySelectorAll('tbody tr, tfoot tr').forEach(tr => [...tr.children].forEach((td, i) => { if (hs[i] && td.colSpan === 1) td.setAttribute('data-l', hs[i]); }));
     t.classList.add('mcards');

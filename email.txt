@@ -1,0 +1,1116 @@
+# OMG Rental — Automated Email, Receipt & Reminder System
+
+I want to add a complete automated customer communication system to the OMG Rental application.
+
+The objective is that once a customer's email is available, the system should automatically send the appropriate email based on the customer's booking, payment, pickup, return and settlement status.
+
+The system should use professional, attractive HTML email templates with the **OMG Rental logo, business information and contact number: 7610544284**.
+
+The customer should receive useful communication without staff having to manually write every email.
+
+---
+
+## 1. Email Account & Security
+
+The application should support sending emails through our business email account.
+
+IMPORTANT:
+
+
+* Credentials must never appear in GitHub, source code, browser code, logs or admin screens.
+* Only Admin should be able to configure email settings.
+* The system should record whether an email was successfully sent, failed or is pending.
+
+Admin settings should include:
+
+* Sender name
+* Sender email
+* SMTP/API provider
+* SMTP host
+* Port
+* Secure connection
+* Username
+* Secret/app password
+* Reply-to email
+* Test email function
+
+The actual secret/password should always be masked.
+
+---
+
+# 2. Professional HTML Email Templates
+
+All emails should use a consistent OMG Rental design.
+
+Each email should contain:
+
+* OMG Rental logo
+* Professional header
+* Customer name
+* Relevant booking information
+* Relevant dates
+* Item information
+* Payment information when applicable
+* Clear call-to-action where required
+* OMG Rental contact number: 7610544284
+* Business address/location
+* Optional WhatsApp/contact button
+* Footer
+* Unsubscribe/communication preference information where appropriate
+
+The design should be responsive and look good on:
+
+* Gmail
+* Outlook
+* Apple Mail
+* Mobile phones
+* Tablets
+* Desktop
+
+Do not create plain-text-looking emails.
+
+Use a polished, premium fashion/rental-business design.
+
+---
+
+# 3. Attach Customer Receipt
+
+Whenever a customer completes a rental or purchase transaction and their email address is available:
+
+Automatically send an email with the receipt attached.
+
+The attachment can be:
+
+* PDF receipt
+
+The email should contain a short summary and the detailed receipt as an attachment.
+
+Example:
+
+Booking:
+#OMG-00124
+
+Customer:
+Neha Sharma
+
+Rental:
+G021 + C043 + J027
+
+Rental Amount:
+₹997
+
+Security Deposit:
+₹2,000
+
+Total Paid:
+₹2,997
+
+Return Date:
+29 September 2026
+
+The customer should also be able to see the receipt inside their email.
+
+---
+
+# 4. Thank-You Email
+
+After successful payment/booking:
+
+Trigger:
+
+Payment successfully received
+
+AND
+
+Customer email exists
+
+Then send:
+
+### Thank You / Booking Confirmation Email
+
+Subject example:
+
+"Thank you for choosing OMG Rental — Booking #OMG-00124"
+
+Include:
+
+* Thank you message
+* Booking number
+* Customer name
+* Rented items
+* Pickup date/time
+* Event date
+* Return date/time
+* Rental amount
+* Deposit
+* Amount paid
+* Contact information
+* Receipt attachment
+
+---
+
+# 5. Booking Confirmation Email
+
+Immediately after booking confirmation:
+
+Send an automated confirmation.
+
+Include:
+
+### Your OMG Rental booking is confirmed
+
+Booking number
+
+Customer details
+
+Items:
+
+G021
+C043
+J027
+
+Pickup:
+
+27 September
+2:00 PM – 3:00 PM
+
+Event:
+
+28 September
+
+Return:
+
+29 September
+Before 12:00 PM
+
+Rental amount
+
+Security deposit
+
+Total paid
+
+Payment method
+
+Important rental instructions.
+
+---
+
+# 6. Pickup Reminder
+
+Create an automatic reminder before pickup.
+
+For example:
+
+Pickup is tomorrow.
+
+Send:
+
+### Your OMG Rental pickup is tomorrow
+
+Your outfit will be ready for collection.
+
+Pickup window:
+
+2:00 PM – 3:00 PM
+
+Include:
+
+* Booking number
+* Customer name
+* Items
+* Pickup location
+* Contact number
+* Directions/location button if available
+
+The exact reminder timing should be configurable.
+
+For example:
+
+* 24 hours before
+* Morning of pickup
+* Custom
+
+Avoid sending duplicate reminders.
+
+---
+
+# 7. Pickup-Day Reminder
+
+On the actual pickup date:
+
+Send another optional reminder.
+
+Example:
+
+### Your OMG Rental outfit is ready
+
+Your pickup window is:
+
+2:00 PM – 3:00 PM today.
+
+Please bring any required identification/deposit information.
+
+---
+
+# 8. Return Reminder — IMPORTANT
+
+This is one of the most important automated features.
+
+Our standard return deadline is:
+
+### BEFORE 12:00 PM
+
+The system should automatically send a reminder.
+
+Example:
+
+Return date:
+
+29 September
+
+Return deadline:
+
+Before 12:00 PM
+
+Send a reminder before the deadline.
+
+Possible schedule:
+
+### Previous evening
+
+"Your OMG Rental return is tomorrow."
+
+### Morning of return
+
+"Your OMG Rental return is due today before 12:00 PM."
+
+The exact timing should be configurable from Settings.
+
+---
+
+# 9. Return-Day Email
+
+On the return date:
+
+Send:
+
+### Your OMG Rental return is due today
+
+Hi Neha,
+
+Your rented items are due for return today.
+
+Return deadline:
+
+12:00 PM
+
+Booking:
+
+#OMG-00124
+
+Items:
+
+G021
+C043
+J027
+
+Please return the items before the deadline to avoid applicable late charges.
+
+Contact:
+
+7610544284
+
+---
+
+# 10. Overdue Return Email
+
+If the customer has not returned the items after the deadline:
+
+Automatically trigger an overdue email.
+
+Example:
+
+### Your OMG Rental return is overdue
+
+Your rental was due before 12:00 PM today.
+
+Booking:
+
+#OMG-00124
+
+Please contact OMG Rental and arrange the return as soon as possible.
+
+Applicable late charges may apply according to the rental terms.
+
+Phone:
+
+7610544284
+
+The system should allow configurable grace periods.
+
+For example:
+
+* 15 minutes
+* 30 minutes
+* 1 hour
+* 2 hours
+
+---
+
+# 11. Multiple Overdue Reminders
+
+Do not send unlimited emails.
+
+Create configurable escalation rules.
+
+Example:
+
+12:15 PM:
+First overdue reminder
+
+3:00 PM:
+Second reminder
+
+7:00 PM:
+Final reminder
+
+Next morning:
+Staff follow-up required
+
+Admin should be able to enable/disable each reminder.
+
+---
+
+# 12. Late Fee Notification
+
+If a late fee is applied:
+
+Automatically send an email.
+
+Example:
+
+### Late Return Charge
+
+Booking:
+
+#OMG-00124
+
+Return deadline:
+
+12:00 PM
+
+Actual return:
+
+3:20 PM
+
+Late charge:
+
+₹200
+
+Security deposit:
+
+₹2,000
+
+Updated settlement:
+
+₹1,800 refundable
+
+The customer should receive a clear breakdown.
+
+---
+
+# 13. Return Received Email
+
+Once staff marks the items as returned:
+
+Send:
+
+### We have received your OMG Rental items
+
+Include:
+
+* Booking number
+* Items returned
+* Return date/time
+* Condition status
+* Damage charges, if any
+* Late charges, if any
+* Deposit amount
+* Refund amount
+
+If inspection is still pending, clearly say:
+
+"Your items have been received and are currently undergoing inspection."
+
+---
+
+# 14. Damage Charge Notification
+
+If damage is recorded:
+
+Automatically notify the customer.
+
+Example:
+
+### Rental Inspection Update
+
+During inspection:
+
+C043 — Minor damage
+
+Damage charge:
+
+₹300
+
+Security deposit:
+
+₹2,000
+
+Remaining refund:
+
+₹1,700
+
+The email should provide a transparent breakdown.
+
+---
+
+# 15. Deposit Refund Email
+
+After deposit refund:
+
+Send:
+
+### Your security deposit has been refunded
+
+Booking:
+
+#OMG-00124
+
+Deposit received:
+
+₹2,000
+
+Damage deduction:
+
+₹300
+
+Late fee:
+
+₹0
+
+Refund:
+
+₹1,700
+
+Refund method:
+
+UPI
+
+The email should confirm that the transaction has been settled.
+
+---
+
+# 16. Payment Failed Email
+
+If online payment is eventually added:
+
+If payment fails:
+
+Send:
+
+### Payment could not be completed
+
+Include:
+
+* Booking number
+* Amount
+* Payment status
+* Retry payment button
+* Contact number
+
+---
+
+# 17. Outstanding Payment Reminder
+
+If a customer has an outstanding amount:
+
+Automatically send reminders.
+
+Example:
+
+Outstanding:
+
+₹500
+
+Send reminder according to configured schedule.
+
+The system should stop reminders automatically once payment is received.
+
+---
+
+# 18. Booking Cancellation Email
+
+If a booking is cancelled:
+
+Automatically send:
+
+### Booking Cancellation Confirmation
+
+Include:
+
+* Booking number
+* Cancelled items
+* Original amount
+* Cancellation charge if applicable
+* Refund amount
+* Refund status
+
+---
+
+# 19. Booking Modification Email
+
+If booking details change:
+
+For example:
+
+* Date changed
+* Items changed
+* Price changed
+* Return date changed
+
+Automatically send:
+
+### Your OMG Rental booking has been updated
+
+Show:
+
+Previous details
+
+New details
+
+This is important so there is no confusion between staff and customer.
+
+---
+
+# 20. Sales Receipt Email
+
+For products sold rather than rented:
+
+Send:
+
+### Thank you for your purchase
+
+Include:
+
+* Product
+* Item code
+* Quantity
+* Selling price
+* Discount
+* Tax if applicable
+* Total
+* Payment method
+* Receipt PDF
+
+---
+
+# 21. Voucher / Promotional Emails
+
+The system should eventually support promotional emails.
+
+Examples:
+
+"Your ₹100 OMG Rental voucher is waiting"
+
+"Navratri Collection is now available"
+
+"New Garba Collection"
+
+"Early Booking Offer"
+
+"OMG Salon + OMG Rental Special Offer"
+
+However, promotional emails should be separate from transactional emails.
+
+The system should not send promotional emails automatically to customers who have not opted into marketing communications where consent is required.
+
+---
+
+# 22. Customer Review Request
+
+After a successful rental and return:
+
+Automatically send a review request after an appropriate delay.
+
+Example:
+
+### How was your OMG Rental experience?
+
+We'd love to hear your feedback.
+
+Buttons:
+
+⭐ Leave a Google Review
+
+or
+
+Send Feedback
+
+The review link should be configurable in Admin Settings.
+
+---
+
+# 23. Referral Email
+
+Eventually support:
+
+### Refer a Friend & Get ₹200 OFF
+
+Customer receives a unique referral code.
+
+Track:
+
+* Referrer
+* New customer
+* Booking
+* Voucher used
+* Referral reward
+
+---
+
+# 24. Birthday / Special Occasion Automation
+
+Optional future feature.
+
+If customer date of birth is collected and the customer has consented to such communication:
+
+Send birthday offer.
+
+Example:
+
+"Happy Birthday from OMG Rental 🎉"
+
+This should be optional and configurable.
+
+---
+
+# 25. Customer Re-Engagement
+
+If a customer has not rented for a certain period:
+
+Example:
+
+90 days
+
+or
+
+180 days
+
+Send an optional campaign:
+
+"We've added a new collection at OMG Rental."
+
+This should be a marketing automation, not a transactional email.
+
+---
+
+# 26. Email Template Management
+
+Admin should be able to manage templates.
+
+Create a section:
+
+### Email Templates
+
+Each template should show:
+
+Name
+Trigger
+Status
+Last Updated
+
+Examples:
+
+Booking Confirmation — Active
+
+Pickup Reminder — Active
+
+Return Tomorrow — Active
+
+Return Today — Active
+
+Overdue Return — Active
+
+Deposit Refund — Active
+
+Review Request — Active
+
+Admin should be able to:
+
+* Enable
+* Disable
+* Edit
+* Preview
+* Send test email
+
+---
+
+# 27. Template Variables
+
+Do not hard-code customer information into templates.
+
+Support variables such as:
+
+{{customer_name}}
+
+{{booking_number}}
+
+{{item_list}}
+
+{{pickup_date}}
+
+{{pickup_time}}
+
+{{event_date}}
+
+{{return_date}}
+
+{{return_time}}
+
+{{rental_amount}}
+
+{{discount}}
+
+{{deposit_amount}}
+
+{{damage_charge}}
+
+{{late_fee}}
+
+{{refund_amount}}
+
+{{payment_amount}}
+
+{{payment_method}}
+
+{{business_phone}}
+
+{{business_address}}
+
+{{receipt_link}}
+
+{{tracking/reference_number}}
+
+This will allow one template to work for every customer.
+
+---
+
+# 28. Automation Rules Engine
+
+Create a simple automation engine.
+
+Each automation should have:
+
+### Trigger
+
+Example:
+
+Return Date = Tomorrow
+
+### Condition
+
+Customer Email Exists = Yes
+
+Booking Status = Active
+
+### Action
+
+Send Email
+
+### Timing
+
+1 day before
+
+This should be configurable.
+
+Examples:
+
+IF:
+
+Return date = tomorrow
+
+AND:
+
+Booking status = rented
+
+THEN:
+
+Send return reminder.
+
+---
+
+# 29. Prevent Duplicate Emails
+
+This is very important.
+
+The system must keep an email log.
+
+Before sending an automated email, check whether the same email was already sent for the same booking/event.
+
+For example:
+
+Do not send the same "Return Tomorrow" email twice.
+
+Maintain:
+
+Email ID
+Booking ID
+Customer ID
+Template
+Trigger
+Sent Time
+Status
+Message ID
+Failure Reason
+
+---
+
+# 30. Email Delivery Log
+
+Admin should have:
+
+### Email Activity
+
+Customer
+Booking
+Template
+Sent Date/Time
+Status
+
+Statuses:
+
+Sent
+Delivered (if provider supports it)
+Failed
+Bounced
+Pending
+
+If an email fails:
+
+Show the reason where available.
+
+---
+
+# 31. Staff Notification System
+
+Customer emails are only one side.
+
+The system should also notify staff/admin about important events.
+
+Dashboard alerts:
+
+🔴 Returns overdue
+
+🟠 Returns due today
+
+🟡 Pickups today
+
+🔴 Payment outstanding
+
+🔴 Deposit pending
+
+🟠 Damage inspection pending
+
+The staff dashboard should show these as action items.
+
+---
+
+# 32. Call Customer Button
+
+Because return follow-up is important:
+
+Every return reminder should provide:
+
+### CALL CUSTOMER
+
+Clicking it on mobile/tablet should open the phone dialer using the customer's saved phone number.
+
+Also provide:
+
+### WHATSAPP CUSTOMER
+
+where technically and legally appropriate.
+
+This should be especially prominent for overdue returns.
+
+---
+
+# 33. Notification Preferences
+
+Customer profile should have:
+
+Email:
+ON/OFF
+
+WhatsApp:
+ON/OFF
+
+SMS:
+ON/OFF
+
+Marketing:
+ON/OFF
+
+Transactional notifications should remain distinct from marketing preferences.
+
+---
+
+# 34. Admin Settings
+
+Create:
+
+### Notification Settings
+
+Return reminder:
+ON/OFF
+
+Pickup reminder:
+ON/OFF
+
+Overdue reminder:
+ON/OFF
+
+Deposit refund:
+ON/OFF
+
+Review request:
+ON/OFF
+
+Marketing:
+ON/OFF
+
+Then configure timing.
+
+Example:
+
+Pickup reminder:
+24 hours before
+
+Return tomorrow:
+6:00 PM previous day
+
+Return today:
+8:00 AM
+
+Overdue:
+12:15 PM
+
+Second overdue:
+3:00 PM
+
+These times must be configurable.
+
+---
+
+# 35. Time Zone
+
+Use the business location's local timezone.
+
+For OMG Rental in India:
+
+Asia/Kolkata
+
+All booking, pickup, return and automation calculations must use the correct local timezone.
+
+---
+
+# 36. Important Business Rule
+
+The application should NOT depend on staff remembering to send reminders.
+
+The system should automatically determine:
+
+What is due today?
+
+What is due tomorrow?
+
+What is overdue?
+
+What has been returned?
+
+What payment is outstanding?
+
+What deposit is pending?
+
+Then trigger the appropriate notification.
+
+---
+
+# 37. Future Notification Channels
+
+Design the system so email is only the first channel.
+
+Future channels:
+
+* WhatsApp
+* SMS
+* Push notification
+* In-app notification
+
+The same automation engine should eventually be able to trigger multiple channels.
+
+For example:
+
+Return Tomorrow:
+
+Email → YES
+
+WhatsApp → YES
+
+SMS → Optional
+
+---
+
+# 38. Final goal
+
+I want OMG Rental to feel like a professional rental-management system where:
+
+Customer books
+↓
+Confirmation automatically sent
+↓
+Receipt automatically attached
+↓
+Pickup reminder automatically sent
+↓
+Return reminder automatically sent
+↓
+If late → overdue reminder
+↓
+Staff calls customer if necessary
+↓
+Return processed
+↓
+Damage/late fee calculated
+↓
+Deposit refunded
+↓
+Refund confirmation automatically sent
+↓
+Review request automatically sent
+
+The system should reduce manual work for staff while maintaining a complete record of every communication and transaction.
+
+Build this as a scalable foundation that can later support:
+
+Garba Rentals
+Wedding Rentals
+Bridal Rentals
+Party Wear
+Costume Rentals
+Sales
+OMG Salon cross-promotions
+Online bookings
+WhatsApp automation
+Customer loyalty
+Marketing campaigns
