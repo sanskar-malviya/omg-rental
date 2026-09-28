@@ -26,7 +26,8 @@ var SCHEMA = {
   Users:          { key: 'user_id', cols: ['user_id', 'name', 'role', 'login', 'active', 'pin_hash'] },
   Settings:       { key: 'key', cols: ['key', 'value'] },
   Item_History:   { key: 'history_id', cols: ['history_id', 'item_code', 'at', 'by', 'event'] },
-  Audit_Log:      { key: 'audit_id', cols: ['audit_id', 'at', 'user', 'role', 'action', 'record', 'details'] }
+  Audit_Log:      { key: 'audit_id', cols: ['audit_id', 'at', 'user', 'role', 'action', 'record', 'details'] },
+  Item_Photos:    { key: 'photo_id', cols: ['photo_id', 'item_code', 'booking_no', 'kind', 'url', 'path', 'size_kb', 'uploaded_at', 'uploaded_by', 'active'] }
 };
 var ADMIN_TABLES = ['Users', 'Settings', 'Collections', 'Packages'];
 var DATE_COL = /(_at|_date|_from|_until|^at|^valid_from|^valid_to)$/;
@@ -81,11 +82,12 @@ function doPost(e) {
         return json({ ok: true, users: sheetObjects('Users').filter(isActive).map(function (u) { return { user_id: u.user_id, name: u.name, role: u.role }; }) });
       case 'login': return json(login(req.user_id, req.pin));
       case 'logout': CacheService.getScriptCache().remove('t_' + req.token); return json({ ok: true });
-      case 'load': var u = auth(req.token); return json({ ok: true, user: u, tables: loadAll(), serverTime: new Date().toISOString() });
+      case 'load': var u = auth(req.token); return json({ ok: true, user: u, tables: loadAll(), photosEnabled: photosEnabled(), serverTime: new Date().toISOString() });
       case 'commit': return json(commit(auth(req.token), req.changes || {}, req.newBookings || []));
       case 'verifyPin': auth(req.token); return json(verifyPin(req.pin));
       case 'setPin': return json(setPin(auth(req.token), req.user_id, req.pin));
       case 'resetData': return json(resetData(auth(req.token), req.pin));
+      case 'uploadPhoto': return json(uploadPhoto(auth(req.token), req));
       default: return json({ ok: false, error: 'Unknown action' });
     }
   } catch (err) {
@@ -147,6 +149,53 @@ function resetData(user, pin) {
     upsertObjects('Audit_Log', [{ audit_id: 'A-' + Utilities.getUuid(), at: new Date().toISOString(), user: user.name, role: 'Admin', action: 'All data cleared', record: 'Google Sheet', details: 'Users and settings kept' }]);
   } finally { lock.releaseLock(); }
   return { ok: true };
+}
+
+/* ============ PHOTOS → GitHub (public photos repo) ============
+   Apps Script → Project Settings → Script Properties:
+     GITHUB_TOKEN  = fine-grained token with "Contents: Read and write" on the photos repo only
+     GITHUB_REPO   = owner/repo   e.g. sanskar-malviya/omg-rental-photos
+     GITHUB_BRANCH = main          (optional)
+   The token never leaves Apps Script. The app sends an already-compressed JPEG. */
+function photosEnabled() {
+  var P = PropertiesService.getScriptProperties();
+  return !!(P.getProperty('GITHUB_TOKEN') && P.getProperty('GITHUB_REPO'));
+}
+function uploadPhoto(user, req) {
+  var P = PropertiesService.getScriptProperties();
+  var token = P.getProperty('GITHUB_TOKEN'), repo = P.getProperty('GITHUB_REPO'), branch = P.getProperty('GITHUB_BRANCH') || 'main';
+  if (!token || !repo) fail('Photo storage is not set up yet — add GITHUB_TOKEN and GITHUB_REPO in Apps Script → Project Settings → Script Properties', 'photos_off');
+  var data = String(req.data || '');
+  if (!data || !/^[A-Za-z0-9+\/=]+$/.test(data)) fail('Invalid image data');
+  if (data.length > 2800000) fail('Image too large (max ~2 MB after compression)');
+  var code = String(req.item_code || '').replace(/[^A-Za-z0-9-]/g, '');
+  if (!code) fail('Item code is required');
+  var kind = req.kind === 'damage' ? 'damage' : 'item';
+  var bno = String(req.booking_no || '').replace(/[^A-Za-z0-9-]/g, '');
+  var stamp = Utilities.formatDate(new Date(), 'Asia/Kolkata', 'yyyyMMdd-HHmmss');
+  var rand = Utilities.getUuid().slice(0, 4);
+  var path = kind === 'damage' ? 'damage/' + (bno || 'no-booking') + '/' + code + '-' + stamp + '-' + rand + '.jpg'
+                               : 'items/' + code + '/' + code + '-' + stamp + '-' + rand + '.jpg';
+  var lock = LockService.getScriptLock(); lock.waitLock(25000);
+  try {
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/contents/' + path, {
+      method: 'put', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      payload: JSON.stringify({ message: 'Photo ' + path + ' (' + user.name + ')', content: data, branch: branch })
+    });
+    var status = res.getResponseCode();
+    if (status !== 201 && status !== 200) {
+      var msg = ''; try { msg = JSON.parse(res.getContentText()).message; } catch (x) { }
+      fail('GitHub upload failed (' + status + (msg ? ': ' + msg : '') + ')' + (status === 401 || status === 403 || status === 404 ? ' — check GITHUB_TOKEN permissions and GITHUB_REPO' : ''));
+    }
+    var photo = {
+      photo_id: 'PH-' + Utilities.getUuid().slice(0, 8), item_code: code, booking_no: bno, kind: kind,
+      url: 'https://raw.githubusercontent.com/' + repo + '/' + branch + '/' + path, path: path,
+      size_kb: Math.round(data.length * 0.75 / 1024), uploaded_at: new Date().toISOString(), uploaded_by: user.name, active: 'yes'
+    };
+    upsertObjects('Item_Photos', [photo]);
+    return { ok: true, photo: photo };
+  } finally { lock.releaseLock(); }
 }
 
 /* ============ READ ============ */

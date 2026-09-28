@@ -48,3 +48,23 @@ If you change `Code.gs`: **Deploy → Manage deployments → Edit (pencil) → V
 - **Backups:** Google Sheets keeps version history (File → Version history). Also use **Settings → Export & backup** weekly to download CSV copies.
 - **Internet drops:** the top bar shows *Offline · not saved*. Keep working; changes save automatically when the connection returns. Don't close the tab until it shows *Saved*.
 - **Limits:** Google Sheets suits one shop with a few tablets and a few thousand bookings. Each save takes 1–3 seconds. If you grow to multiple branches or many staff, move to a proper database. The app's data layer (`toTables` / `fromTables` / `api`) is the only part that needs to change.
+
+## Photos on GitHub (item photos + damage photos)
+Photos are compressed on the tablet (about 1280 px, 150–280 KB). They are uploaded by the Apps Script to a **separate public GitHub repository**, and the raw URL is saved in the **Item_Photos** tab.
+
+1. **Create the photos repository:** https://github.com/new → name `omg-rental-photos` → **Public** → tick **Add a README** (it needs one commit) → Create.
+   - It must be public so the raw URLs work in the app. Keep your code repository private.
+   - Only upload item and damage photos. **Never upload ID proofs.**
+2. **Create a token:** GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token.
+   - Repository access: **Only select repositories → omg-rental-photos**
+   - Permissions → Repository permissions → **Contents: Read and write**
+   - Expiration: 1 year (set a reminder to renew it)
+   - Copy the token (starts with `github_pat_`).
+3. **Give it to Apps Script (not to the app):** Apps Script → ⚙ **Project Settings → Script Properties → Add script property**
+   - `GITHUB_TOKEN` = your token
+   - `GITHUB_REPO` = `sanskar-malviya/omg-rental-photos`
+   - `GITHUB_BRANCH` = `main` (optional)
+4. Paste the latest `Code.gs` → **Deploy → Manage deployments → ✏️ → New version → Deploy**.
+5. In the app: **Settings → Connection** should show *Photo storage (GitHub): connected ✓*. Open any item → **Photos → Add photo**.
+
+Files are stored as `items/<ITEM CODE>/…jpg` and `damage/<BOOKING NO>/<ITEM CODE>-…jpg`. "Remove" hides a photo in the app. The file stays in the repository history.

@@ -502,6 +502,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 body.login-mode .side,body.login-mode .top,body.login-mode .bottomnav,body.login-mode #tourRoot{display:none}
 body.login-mode .app{grid-template-columns:1fr}
 .login-card{max-width:440px;margin:5vh auto}
+.icard .img .pill{z-index:1}
+.icard .img>img,.thumb>img{width:100%;height:100%;object-fit:cover;display:block}
+.icard .img>img{position:absolute;inset:0}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.pgrid .ph{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:var(--bg-2);border:1px solid var(--line);cursor:pointer;padding:0}
+.pgrid .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.pgrid .ph .rm{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center}
+.pgrid .ph .tagk{position:absolute;left:4px;bottom:4px;font-size:10px;font-weight:800;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:1px 6px}
+.upbtn{position:relative;overflow:hidden}
+.upbtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.mini-ph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mini-ph img{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
 @media print{.side,.top,.bottomnav,.tour-fab,.tour{display:none!important}.app{display:block}}
 </style>
 </head>
@@ -638,7 +650,9 @@ function art(type, hex, size = 100) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true">${body}</svg>`;
 }
 const tileBg = hex => `background:linear-gradient(145deg,${hex}14,${hex}33)`;
-const thumb = (it, cls = '') => `<div class="thumb ${cls}" style="${tileBg(it.hex)}">${art(it.type, it.hex, cls === 'sm' ? 34 : 46)}</div>`;
+/* First active item photo (stored on GitHub, URL in the Item_Photos sheet) or null */
+function photoOf(code) { const p = typeof DB !== 'undefined' && DB && DB.photos && DB.photos.find(x => x.code === code && x.kind === 'item' && x.active !== false); return p ? p.url : null; }
+const thumb = (it, cls = '') => { const u = photoOf(it.code); return u ? `<div class="thumb ${cls}"><img src="${u}" alt="" loading="lazy"></div>` : `<div class="thumb ${cls}" style="${tileBg(it.hex)}">${art(it.type, it.hex, cls === 'sm' ? 34 : 46)}</div>`; };
 
 /* =====================================================================
    §2 SEED DATA
@@ -791,7 +805,7 @@ function seedData() {
     ['10-03', 'Megha Solanki', ['G021', 'C006', 'J001'], {}],
     ['10-04', 'Ananya Maheshwari', ['G005', 'C009', 'J002'], {}],
   ];
-  return { settings, collections, packages, items, customers, vouchers, users, bookingSeed: B, cByName, sales: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1000 + customers.length } };
+  return { settings, collections, packages, items, customers, vouchers, users, bookingSeed: B, cByName, sales: [], photos: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1000 + customers.length } };
 }
 
 /* =====================================================================
@@ -1543,7 +1557,7 @@ function renderInvResults() {
   }
 }
 function icard(it, st) {
-  return `<button class="icard" onclick="go('#/item/${it.code}')"><div class="img" style="${tileBg(it.hex)}">${pill(st)}${it.mode !== 'rent' ? `<span class="pill mode" style="background:#fff;color:var(--ink-2)">${it.mode === 'sale' ? 'Sale only' : 'Rent + Sale'}</span>` : ''}${art(it.type, it.hex, 118)}</div>
+  return `<button class="icard" onclick="go('#/item/${it.code}')"><div class="img" style="${tileBg(it.hex)}">${pill(st)}${it.mode !== 'rent' ? `<span class="pill mode" style="background:#fff;color:var(--ink-2)">${it.mode === 'sale' ? 'Sale only' : 'Rent + Sale'}</span>` : ''}${photoOf(it.code) ? `<img src="${photoOf(it.code)}" alt="" loading="lazy">` : art(it.type, it.hex, 118)}</div>
     <div class="b"><div class="row between"><span class="code">${it.code}</span><span class="tiny muted">${esc(it.size)}</span></div><div class="nm">${esc(it.name)}</div>
     <div class="pr"><b>${it.mode === 'sale' ? rs(it.sale) : rs(it.rent)}</b><span class="tiny muted">${it.mode === 'sale' ? 'sale price' : 'per rental'}</span></div></div></button>`;
 }
@@ -1564,7 +1578,7 @@ function addItemModal() {
       <div class="field"><label>Rental price</label><div class="input-wrap"><span class="pre">₹</span><input class="input" id="ai_rent" type="number" value="499"></div></div>
       <div class="field"><label>Selling price</label><div class="input-wrap"><span class="pre">₹</span><input class="input" id="ai_sale" type="number" value="0"></div></div>
       <div class="field"><label>Security deposit</label><div class="input-wrap"><span class="pre">₹</span><input class="input" id="ai_dep" type="number" value="1000"></div></div>
-      <div class="field" style="grid-column:1/-1"><label>Photos</label><div class="row wrap"><button class="btn" type="button" onclick="toast('Real app: opens camera / gallery, uploads to cloud storage')">${ic('plus', 18)} Add photos</button><span class="hint">Front, back, close-up of work, any existing flaws</span></div></div>
+      <div class="field" style="grid-column:1/-1"><label>Photos</label><div class="row wrap"><span class="hint">After saving, add photos on the item page (front, back, close-up of the work, any flaws). They are compressed and stored on GitHub.</span></div></div>
       <div class="field" style="grid-column:1/-1"><label>Notes</label><textarea class="input" id="ai_notes" placeholder="Fit notes, pairing suggestions, known flaws…"></textarea></div></div><div id="aiErr" class="err"></div>`,
     foot: `<button class="btn btn-lg" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-lg" onclick="saveNewItem()">Save item & print tag</button>`,
   });
@@ -1601,7 +1615,7 @@ function scrItem(code) {
     <div class="row" style="margin-bottom:14px"><button class="btn btn-ghost btn-sm" onclick="go('#/inventory')">${ic('left', 16)} Inventory</button></div>
     <div class="split-l">
       <div class="stack s16">
-        <div class="card" style="overflow:hidden"><div class="thumb lg" style="${tileBg(it.hex)};border-radius:0">${art(it.type, it.hex, 260)}</div>
+        <div class="card" style="overflow:hidden">${photoOf(code) ? `<div class="thumb lg" style="border-radius:0;cursor:zoom-in" onclick="openPhoto('${(DB.photos.find(p => p.code === code && p.kind === 'item' && p.active !== false) || {}).id}')"><img src="${photoOf(code)}" alt="${esc(it.name)}"></div>` : `<div class="thumb lg" style="${tileBg(it.hex)};border-radius:0">${art(it.type, it.hex, 260)}</div>`}
           <div class="card-b"><div class="row between"><span class="code" style="font-size:15px">${it.code}</span>${pill(st)}</div>
           <h1 class="pg" style="font-size:24px;margin-top:10px">${esc(it.name)}</h1><div class="muted small" style="margin-top:4px">${TYPES[it.type].name} · ${esc(it.size)} · ${MODES[it.mode]}</div>
           <div class="row" style="margin-top:14px;gap:18px"><div><div class="eyebrow">Rent</div><b style="font-size:22px">${it.rent ? rs(it.rent) : '—'}</b></div><div><div class="eyebrow">Deposit</div><b style="font-size:22px">${it.deposit ? rs(it.deposit) : '—'}</b></div><div><div class="eyebrow">Sale</div><b style="font-size:22px">${it.sale ? rs(it.sale) : '—'}</b></div></div></div>
@@ -1617,6 +1631,7 @@ function scrItem(code) {
             </div>
             ${!['sold', 'lost'].includes(it.status) && can('inventory.edit') ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="lostModal('${code}')">Mark as lost…</button>` : ''}
           </div></div>
+        ${photoCard(code)}
         <div class="card pad"><h3 style="margin-bottom:12px">Details</h3><dl class="kv">
           ${kv('Item code', `<span class="mono">${it.code}</span>`)}${kv('Type', TYPES[it.type].name)}${kv('Collection', DB.collections.find(c => c.id === it.collection).name)}
           ${kv('Colour', `<span class="tag" style="padding:2px 8px 2px 2px"><span class="sw" style="background:${it.hex}"></span>${esc(it.colour)}</span>`)}${kv('Size', esc(it.size))}${kv('Design / style', esc(it.style))}
@@ -2046,7 +2061,7 @@ function scrBooking(no, r) {
         <div class="dcard ev"><div class="k">${ic('sparkle', 14)} Event</div><div class="d">${fDate(b.eventDate)}</div></div>
         <div class="dcard ret" ${isOverdue(b) ? 'style="background:var(--danger-soft);border-color:#f3c3cb"' : ''}><div class="k" ${isOverdue(b) ? 'style="color:var(--danger)"' : ''}>${ic('ret', 14)} Return</div><div class="d">${fDate(b.returnBy)}</div><div class="t" ${isOverdue(b) ? 'style="color:var(--danger)"' : ''}>Before ${fTime(b.returnBy)}${isOverdue(b) ? ` · ${minsTxt((NOW - b.returnBy) / 60000)} late` : ''}</div></div></div>
       <div class="card"><div class="card-h">${ic('hanger', 20)}<h3 class="grow">Items</h3><span class="tiny muted">${b.pkgs.map(p => p.name).join(', ')}</span></div><div class="list">
-        ${b.lines.map(l => { const it = item(l.code); const r = b.returnInfo && b.returnInfo.lines[l.code]; const cd = r && CONDS.find(x => x.k === r.cond); return `<div class="lrow click" onclick="go('#/item/${l.code}')">${thumb(it)}<div class="grow"><span class="code">${it.code}</span> <b>${esc(it.name)}</b><div class="tiny muted">${esc(it.size)} · list ${rs(l.list)} · allocated ${rs(l.alloc)} · deposit ${rs(l.deposit)}</div>${cd ? `<div class="tiny strong" style="margin-top:3px">Returned: ${cd.label}${+r.charge ? ' · ' + rs(r.charge) : ''}</div>` : ''}</div>${pill(istate(it))}</div>`; }).join('')}</div></div>
+        ${b.lines.map(l => { const it = item(l.code); const r = b.returnInfo && b.returnInfo.lines[l.code]; const cd = r && CONDS.find(x => x.k === r.cond); return `<div class="lrow click" onclick="go('#/item/${l.code}')">${thumb(it)}<div class="grow"><span class="code">${it.code}</span> <b>${esc(it.name)}</b><div class="tiny muted">${esc(it.size)} · list ${rs(l.list)} · allocated ${rs(l.alloc)} · deposit ${rs(l.deposit)}</div>${cd ? `<div class="tiny strong" style="margin-top:3px">Returned: ${cd.label}${+r.charge ? ' · ' + rs(r.charge) : ''}</div>` : ''}${miniPhotos(l.code, b.no)}</div>${pill(istate(it))}</div>`; }).join('')}</div></div>
       <div class="card"><div class="card-h">${ic('wallet', 20)}<h3 class="grow">Payment ledger</h3><span class="tiny muted">append-only</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Entry</th><th>Mode</th><th>By</th><th class="r">Amount</th></tr></thead><tbody>
         ${b.payments.map(p => `<tr><td>${fDT(p.at)}</td><td>${KIND[p.kind]}</td><td>${p.mode}</td><td class="small">${esc(p.by)}</td><td class="r num" style="${['refund', 'rent_refund'].includes(p.kind) ? 'color:var(--danger)' : ''}">${['refund', 'rent_refund'].includes(p.kind) ? '−' : ''}${rs(p.amount)}</td></tr>`).join('') || `<tr><td colspan="5">${emptyState('No payments yet')}</td></tr>`}</tbody></table></div></div>
       <div class="card"><div class="card-h">${ic('list', 20)}<h3 class="grow">History</h3></div><div class="list mini-list">${b.events.slice().reverse().map(e => `<div class="lrow"><div class="grow small">${esc(e.text)}<div class="tiny muted">${fDT(e.at)} · ${esc(e.by)}</div></div></div>`).join('')}</div></div>
@@ -2156,8 +2171,8 @@ function scrReturn(no, r) {
       <div class="card"><div class="card-h">${ic('eye', 20)}<h3 class="grow">Check every piece</h3><button class="btn btn-sm btn-soft" onclick="Object.keys(RET.lines).forEach(k=>{RET.lines[k].cond='good';RET.lines[k].charge=0});render()">All good</button></div>
         ${b.lines.map(l => { const it = item(l.code), rl = RET.lines[l.code], cd = CONDS.find(c => c.k === rl.cond); return `<div class="retitem"><div class="row">${thumb(it)}<div class="grow"><span class="code">${it.code}</span> <b>${esc(it.name)}</b><div class="tiny muted">${esc(it.size)} · deposit ${rs(it.deposit)}${it.notes ? ' · ' + esc(it.notes) : ''}</div></div>
           <span class="pill ${cd.next === 'in' ? 'st-available' : cd.next === 'repair' ? 'st-repair' : 'st-lost'}">→ ${NEXT_LABEL[cd.next]}</span></div>
-          <div class="cond">${CONDS.map(k => `<button class="${k.cls} ${rl.cond === k.k ? 'on' : ''}" onclick="retCond('${l.code}','${k.k}')">${k.label}</button>`).join('')}</div>
-          ${rl.cond !== 'good' ? `<div class="row wrap"><div class="field" style="width:170px"><label>Charge</label><div class="input-wrap"><span class="pre">₹</span><input class="input" type="number" inputmode="numeric" value="${rl.charge}" oninput="retCharge('${l.code}',this.value)"></div></div><div class="field grow"><label>Note / photo</label><div class="row"><input class="input" placeholder="What happened?" value="${esc(rl.note)}" onchange="RET.lines['${l.code}'].note=this.value"><button class="btn icon-btn" onclick="toast('Real app: take a photo of the damage (stored with the return)')" aria-label="Photo">${ic('scan', 18)}</button></div></div></div>` : ''}</div>`; }).join('')}
+          ${miniPhotos(l.code, b.no)}<div class="cond">${CONDS.map(k => `<button class="${k.cls} ${rl.cond === k.k ? 'on' : ''}" onclick="retCond('${l.code}','${k.k}')">${k.label}</button>`).join('')}</div>
+          ${rl.cond !== 'good' ? `<div class="row wrap"><div class="field" style="width:170px"><label>Charge</label><div class="input-wrap"><span class="pre">₹</span><input class="input" type="number" inputmode="numeric" value="${rl.charge}" oninput="retCharge('${l.code}',this.value)"></div></div><div class="field grow"><label>Note / photo</label><div class="row"><input class="input" placeholder="What happened?" value="${esc(rl.note)}" onchange="RET.lines['${l.code}'].note=this.value"><label class="btn icon-btn upbtn" title="Add damage photo" aria-label="Add damage photo">${ic('scan', 18)}<input type="file" accept="image/*" multiple onchange="addPhotos(this,'${l.code}','damage','${b.no}')"></label></div></div></div>` : ''}</div>`; }).join('')}
       </div></div>
       <div class="sticky" id="retsettle">${settleHtml(b)}</div></div>` };
 }
@@ -2431,7 +2446,7 @@ function scrSettings(r) {
   let body = '';
   if (tab === 'connection') {
     body = `<div class="grid g2"><div class="card pad stack"><h3>Database connection</h3>
-      ${LIVE ? `<div class="banner good">${ic('db')}<div>Live — every change is saved to your Google Sheet.<div class="small mono" style="word-break:break-all;font-weight:500">${esc(API_URL)}</div></div></div>${syncChip()}<div class="small muted">Last saved: ${SYNC.at ? fDT(SYNC.at) : '—'}</div>`
+      ${LIVE ? `<div class="banner good">${ic('db')}<div>Live — every change is saved to your Google Sheet.<div class="small mono" style="word-break:break-all;font-weight:500">${esc(API_URL)}</div></div></div>${syncChip()}<div class="small muted">Last saved: ${SYNC.at ? fDT(SYNC.at) : '—'}</div><div class="small">Photo storage (GitHub): ${PHOTOS_ON ? '<b style="color:var(--good)">connected ✓</b>' : '<b style="color:var(--danger)">not set up</b> — add GITHUB_TOKEN and GITHUB_REPO in Apps Script → Project Settings → Script Properties'}</div>`
         : `<div class="banner warn">${ic('alert')}<div>Demo mode — sample data in this browser only. Nothing is saved.</div></div>`}
       <button class="btn btn-lg btn-primary" onclick="connectModal()">${ic('db', 18)} ${LIVE ? 'Change connection' : 'Connect Google Sheet'}</button></div>
       <div class="card pad stack"><h3>How it works</h3><ol class="small" style="padding-left:18px;margin:0;color:var(--ink-2);line-height:1.7">
@@ -2582,7 +2597,8 @@ const API_URL = (() => { try { return localStorage.getItem('omg_api_url') || win
 const LIVE = !!API_URL;
 let TOKEN = null, SYNCED = {}, PENDING_NEW = new Set();
 const SYNC = { state: 'idle', msg: '', busy: null, again: false, at: null };
-const TABLE_KEYS = { Collections: 'collection_id', Items: 'item_code', Packages: 'package_id', Customers: 'customer_id', Bookings: 'booking_no', Booking_Items: 'line_id', Payments: 'payment_id', Booking_Events: 'event_id', Returns: 'booking_no', Return_Items: 'line_id', Sales: 'sale_id', Vouchers: 'code', Users: 'user_id', Settings: 'key', Item_History: 'history_id', Audit_Log: 'audit_id' };
+const TABLE_KEYS = { Collections: 'collection_id', Items: 'item_code', Packages: 'package_id', Customers: 'customer_id', Bookings: 'booking_no', Booking_Items: 'line_id', Payments: 'payment_id', Booking_Events: 'event_id', Returns: 'booking_no', Return_Items: 'line_id', Sales: 'sale_id', Vouchers: 'code', Users: 'user_id', Settings: 'key', Item_History: 'history_id', Audit_Log: 'audit_id', Item_Photos: 'photo_id' };
+let PHOTOS_ON = false;
 const uid = (p = '') => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const iso = d => d ? new Date(d).toISOString() : '';
 const pd = v => v === '' || v == null ? null : new Date(v);
@@ -2622,12 +2638,14 @@ function toTables(db) {
   t.Users = db.users.map(u => ({ user_id: u.id, name: u.name, role: u.role, login: u.login || '', active: u.active === false ? 'no' : 'yes' }));
   t.Settings = Object.entries(db.settings).map(([k, v]) => ({ key: k, value: JSON.stringify(v) }));
   t.Item_History = []; db.items.forEach(i => i.log.forEach(l => { if (!l.id) l.id = uid('H-'); t.Item_History.push({ history_id: l.id, item_code: i.code, at: iso(l.at), by: l.by, event: l.text }); }));
+  t.Item_Photos = (db.photos || []).filter(p => !p.local).map(photoRow);
   t.Audit_Log = db.audit.map(a => { if (!a.id) a.id = uid('A-'); return { audit_id: a.id, at: iso(a.at), user: a.by, role: a.role || '', action: a.action, record: a.entity, details: a.detail }; });
   return t;
 }
 function fromTables(t) {
   const def = seedData();
-  const db = { settings: { ...def.settings }, collections: [], packages: [], items: [], customers: [], vouchers: [], users: [], sales: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1000 } };
+  const db = { settings: { ...def.settings }, collections: [], packages: [], items: [], customers: [], vouchers: [], users: [], sales: [], photos: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1000 } };
+  db.photos = (t.Item_Photos || []).map(photoFromRow).filter(p => p.url).sort((a, b) => a.at - b.at);
   (t.Settings || []).forEach(r => { try { db.settings[r.key] = JSON.parse(String(r.value)); } catch (e) { db.settings[r.key] = r.value; } });
   db.collections = (t.Collections || []).length ? t.Collections.map(r => ({ id: r.collection_id, name: r.name, status: r.status, desc: r.description })) : def.collections;
   db.packages = (t.Packages || []).length ? t.Packages.map(r => ({ key: r.package_id, name: r.name, price: num(r.price), desc: r.description, slots: String(r.slots).split(',').map(s => s.trim()).filter(Boolean), salon: yes(r.includes_salon_offer) })) : def.packages;
@@ -2700,7 +2718,7 @@ async function reloadData(quiet) {
   if (!LIVE || !TOKEN) return;
   try {
     const r = await api('load'); if (!r.ok) { if (r.code !== 'auth') toast('Could not load data: ' + r.error, 'bad'); return; }
-    DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB));
+    DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled;
     CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };
     setSync('saved'); render(); if (!quiet) toast('Up to date with the Google Sheet', 'good');
   } catch (e) { setSync('offline', 'No internet'); }
@@ -2756,7 +2774,7 @@ async function enterLive() {
   $('#page').innerHTML = `<div class="login-card card pad" style="text-align:center"><h3>Loading your shop data…</h3><p class="muted small">Reading the Google Sheet</p></div>`;
   const r = await api('load');
   if (!r.ok) { if (r.code !== 'auth') { LOGIN.err = r.error; logoutLocal(); } return; }
-  DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB));
+  DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled;
   CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };
   NOW = new Date(); document.body.classList.remove('login-mode'); TOUR.open = false;
   audit('Signed in', 'Session', navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Tablet / desktop');
@@ -2864,6 +2882,68 @@ async function doClearData() {
     if (!r.ok) { btn.disabled = false; btn.textContent = 'Clear everything'; return $('#cdErr').textContent = r.code === 'error' && /Unknown action/.test(r.error) ? 'Update the Apps Script first (paste the new Code.gs → Manage deployments → New version).' : r.error; }
     closeModal(); await reloadData(true); toast('All data cleared. Users and settings kept.', 'good');
   } catch (e) { btn.disabled = false; btn.textContent = 'Clear everything'; $('#cdErr').textContent = 'No internet'; }
+}
+
+/* ---------- Photos: compress in the browser → Apps Script → GitHub (raw URL saved in Item_Photos) ---------- */
+const photoRow = p => ({ photo_id: p.id, item_code: p.code, booking_no: p.booking || '', kind: p.kind, url: p.url, path: p.path || '', size_kb: p.sizeKb || 0, uploaded_at: iso(p.at), uploaded_by: p.by || '', active: p.active === false ? 'no' : 'yes' });
+const photoFromRow = r => ({ id: r.photo_id, code: r.item_code, booking: r.booking_no || '', kind: r.kind || 'item', url: r.url, path: r.path || '', sizeKb: num(r.size_kb), at: pd(r.uploaded_at), by: r.uploaded_by || '', active: String(r.active).toLowerCase() !== 'no' });
+async function compressImage(file, maxSide = 1280, maxKB = 280) {
+  const src = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That file is not an image')); i.src = src; });
+    const sc = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * sc)); c.height = Math.max(1, Math.round(img.naturalHeight * sc));
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+    let q = 0.8, blob;
+    do { blob = await new Promise(r => c.toBlob(r, 'image/jpeg', q)); q -= 0.1; } while (blob && blob.size > maxKB * 1024 && q > 0.35);
+    if (!blob) throw new Error('Could not compress the photo');
+    const b64 = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result).split(',')[1]); fr.readAsDataURL(blob); });
+    return { blob, b64, kb: Math.round(blob.size / 1024), w: c.width, h: c.height, origKB: Math.round(file.size / 1024) };
+  } finally { URL.revokeObjectURL(src); }
+}
+async function addPhotos(input, code, kind = 'item', bookingNo = '') {
+  const files = [...(input.files || [])]; input.value = '';
+  if (!files.length) return;
+  if (LIVE && !PHOTOS_ON) return toast('Photo storage is not set up yet (Settings → Connection)', 'bad');
+  let done = 0, saved = 0;
+  for (const f of files) {
+    toast(`Compressing & uploading photo ${++done} of ${files.length}…`);
+    try {
+      const c = await compressImage(f);
+      if (!LIVE) { DB.photos.push({ id: uid('PH-'), code, booking: bookingNo, kind, url: URL.createObjectURL(c.blob), sizeKb: c.kb, at: new Date(NOW), by: CUR.name, active: true, local: true }); saved++; continue; }
+      const r = await api('uploadPhoto', { item_code: code, kind, booking_no: bookingNo, data: c.b64 });
+      if (!r.ok) { toast(r.error || 'Upload failed', 'bad'); break; }
+      const p = photoFromRow(r.photo); DB.photos.push(p);
+      SYNCED.Item_Photos = SYNCED.Item_Photos || {}; SYNCED.Item_Photos[p.id] = JSON.stringify(photoRow(p));
+      saved++;
+    } catch (e) { toast('Upload failed: ' + (e.message || 'check internet'), 'bad'); break; }
+  }
+  if (saved) { audit('Photo added', code, `${saved} ${kind} photo(s)${bookingNo ? ' · ' + bookingNo : ''}`); render(); toast(LIVE ? `${saved} photo(s) saved to GitHub` : 'Demo mode: photo shown but not saved', 'good'); }
+}
+function photosFor(code, kind, bookingNo) { return (DB.photos || []).filter(p => p.code === code && p.active !== false && (!kind || p.kind === kind) && (bookingNo == null || p.booking === bookingNo)); }
+function photoCard(code) {
+  const ps = photosFor(code);
+  return `<div class="card pad"><div class="row between" style="margin-bottom:10px"><h3>Photos <span class="muted small">${ps.length || ''}</span></h3>
+    <label class="btn btn-sm btn-soft upbtn">${ic('plus', 16)} Add photo<input type="file" accept="image/*" multiple onchange="addPhotos(this,'${code}','item')"></label></div>
+    ${ps.length ? `<div class="pgrid">${ps.map(p => `<div class="ph" onclick="openPhoto('${p.id}')"><img src="${p.url}" alt="" loading="lazy">${p.kind === 'damage' ? `<span class="tagk">Damage ${esc(p.booking)}</span>` : ''}${can('inventory.edit') ? `<button class="rm" title="Remove" onclick="event.stopPropagation();hidePhoto('${p.id}')">${ic('x', 14)}</button>` : ''}</div>`).join('')}</div>`
+      : `<div class="hint">No photos yet. Add front, back and a close-up of the work. Photos are compressed (~200 KB) and stored on GitHub; the link is saved in the Item_Photos sheet.</div>`}</div>`;
+}
+function miniPhotos(code, bookingNo) {
+  const ps = photosFor(code, 'damage', bookingNo);
+  return ps.length ? `<div class="mini-ph">${ps.map(p => `<img src="${p.url}" alt="damage photo" onclick="event.stopPropagation();openPhoto('${p.id}')">`).join('')}</div>` : '';
+}
+function openPhoto(id) {
+  const p = DB.photos.find(x => x.id === id); if (!p) return;
+  openModal({ title: `${esc(p.code)} · ${p.kind === 'damage' ? 'Damage photo' : 'Photo'}`, wide: true,
+    body: `<img src="${p.url}" alt="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px;background:var(--bg-2)"><div class="small muted" style="margin-top:8px">${p.at ? fDT(p.at) : ''} · ${esc(p.by)} · ${p.sizeKb} KB${p.booking ? ' · ' + esc(p.booking) : ''}</div>`,
+    foot: `${p.local ? '' : `<a class="btn btn-lg" href="${p.url}" target="_blank" rel="noopener">Open raw URL</a>`}<button class="btn btn-primary btn-lg" onclick="closeModal()">Close</button>` });
+}
+function hidePhoto(id) {
+  guard('inventory.edit', 'Remove photo', () => {
+    const p = DB.photos.find(x => x.id === id); if (!p) return;
+    p.active = false; audit('Photo removed', p.code, p.path || p.id); render();
+    toast('Photo removed from the app (the file stays in GitHub history)', 'good');
+  });
 }
 
 /* =====================================================================
