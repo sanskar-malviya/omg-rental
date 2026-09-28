@@ -79,7 +79,7 @@ Files are stored as `items/<ITEM CODE>/…jpg` and `damage/<BOOKING NO>/<ITEM CO
 
 
 ## QR tags & scanning
-- **Print tags:** open an item → **Print tag**, or go to **Inventory → Print tags** to print everything in the current filter (up to 60 at a time). Each QR holds the item's app link, e.g. `https://omgrental.netlify.app/#/item/G021`.
+- **QR tags (PNG):** open an item → **Download QR** to save `QR-<CODE>.png` (QR + code + name). Or go to **Inventory → QR tags** to download a PNG for every piece in the current filter (up to 60 at a time; Chrome may ask once to allow multiple downloads). Print or share the PNGs however you like. Each QR holds the item's app link, e.g. `https://omgrental.netlify.app/#/item/G021`.
 - **Scan:** tap the scan icon in the top bar (opens the item) or **Scan tag to add** in New Rental (adds the piece to the booking). The first time, allow camera access.
 - The camera only works on the **https** Netlify link, not when opening the HTML file directly. If the camera was blocked: tap the 🔒 in the address bar → Permissions → Camera → Allow.
 - A USB/Bluetooth barcode scanner also works: it "types" the tag into the search box or the scan popup.
