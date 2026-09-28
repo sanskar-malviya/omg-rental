@@ -856,14 +856,14 @@ function sendOne(row, T, em) {
   deliverMail(to, m.subject, m.text, opts, em);
   return { status: 'sent', to: to, subject: m.subject };
 }
-/* Uses the business address as "From" when it is set up in Gmail → "Send mail as"; otherwise the script owner's address. */
+/* Uses the business address as "From" when it is set up in Gmail → "Send mail as".
+   No sender chosen in Settings → the first "Send mail as" address; none at all → the script owner's address. */
 function deliverMail(to, subject, text, opts, em) {
-  if (em.senderEmail && validEmail(em.senderEmail)) {
-    var aliases = GmailApp.getAliases().map(function (a) { return String(a).toLowerCase(); });
-    var me = String(Session.getEffectiveUser().getEmail()).toLowerCase(), want = String(em.senderEmail).toLowerCase();
-    if (want === me || aliases.indexOf(want) >= 0) { if (want !== me) opts.from = em.senderEmail; }
-    else throw new Error('Sender ' + em.senderEmail + ' is not set up in Gmail "Send mail as" of ' + me);
-  }
+  var aliases = GmailApp.getAliases().map(function (a) { return String(a).toLowerCase(); });
+  var me = String(Session.getEffectiveUser().getEmail()).toLowerCase();
+  var want = em.senderEmail && validEmail(em.senderEmail) ? String(em.senderEmail).toLowerCase() : (aliases[0] || me);
+  if (want !== me && aliases.indexOf(want) < 0) throw new Error('Sender ' + want + ' is not set up in Gmail "Send mail as" of ' + me);
+  if (want !== me) { opts.from = want; if (!opts.replyTo) opts.replyTo = want; }
   GmailApp.sendEmail(to, subject, text, opts);
 }
 function emailTick() {
@@ -898,6 +898,7 @@ function emailStatus() {
     out.sender = Session.getEffectiveUser().getEmail();
     out.quota = MailApp.getRemainingDailyQuota();
     out.aliases = GmailApp.getAliases();
+    out.owner = out.sender; var em0 = emailSettings(loadAll()); out.sender = validEmail(em0.senderEmail) ? em0.senderEmail : (out.aliases[0] || out.sender);
     out.automation = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'emailTick' && !PropertiesService.getScriptProperties().getProperty('EMAIL_ONEOFF_' + t.getUniqueId()); });
   } catch (x) { out.needsSetup = true; out.error = 'Email is not switched on yet: open Apps Script, run setupEmail() and click Allow, then deploy a new version.'; }
   return out;
@@ -961,7 +962,7 @@ function setupEmail() {
   ScriptApp.newTrigger('emailTick').timeBased().everyMinutes(15).create();
   var me = Session.getEffectiveUser().getEmail(), T = loadAll(true), em = emailSettings(T);
   var m = renderEmail('booking_confirmation', sampleCtx(T), em, {});
-  GmailApp.sendEmail(me, '[TEST] ' + m.subject, m.text, { htmlBody: m.html, name: em.senderName });
+  deliverMail(me, '[TEST] ' + m.subject, m.text, { htmlBody: m.html, name: em.senderName || 'OMG Rental' }, em);
   Logger.log('✅ Email is on. Reminders run every 15 minutes. A test email was sent to ' + me + '. Gmail quota left today: ' + MailApp.getRemainingDailyQuota() +
     '. "Send mail as" addresses: ' + (GmailApp.getAliases().join(', ') || 'none') + '. Now: Deploy → Manage deployments → ✏️ → New version → Deploy.');
 }
