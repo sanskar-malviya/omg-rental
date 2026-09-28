@@ -2439,7 +2439,7 @@ function scrSettings(r) {
         <li>Google Apps Script in that sheet = the secure API (PIN login, saving, booking lock).</li>
         <li>This app (hosted on Netlify) reads & writes only through that API.</li>
         <li>Google Sheets keeps version history (File → Version history) — plus use Reports/Export for extra backups.</li></ol>
-        ${LIVE && can('settings.edit') ? `<div class="hr"></div><h3>Sample data</h3><p class="small muted" style="margin:0">Fill the sheet with the demo Garba inventory, customers and bookings to try things out.</p><button class="btn btn-lg" onclick="importSample()">${ic('download', 18)} Import sample data into the sheet</button>` : ''}</div></div>`;
+        ${LIVE && can('settings.edit') ? `<div class="hr"></div><h3>Data tools</h3><p class="small muted" style="margin:0">Load a small example set (5 items, 5 customers, 3 bookings) to see how things work, then edit or replace it with your real stock.</p><button class="btn btn-lg" onclick="importSample()">${ic('download', 18)} Load starter data</button><button class="btn btn-lg btn-danger-soft" onclick="clearDataModal()">${ic('alert', 18)} Clear all data…</button>` : ''}</div></div>`;
   }
   if (tab === 'timings') {
     const ex = datesForEvent(D(2026, 9, 28));
@@ -2807,22 +2807,63 @@ function pinModal(userId) {
   setTimeout(() => $('#sp_p') && $('#sp_p').focus(), 50);
 }
 
-/* ---------- Import the sample data into the sheet (admin, one-off) ---------- */
-async function importSample() {
-  if (!LIVE) return toast('Connect a Google Sheet first');
-  if (DB.items.length && !confirm(`The sheet already has ${DB.items.length} items. Sample rows with the same codes will be overwritten. Continue?`)) return;
-  if (!DB.items.length && !confirm('Add the sample Garba inventory, customers, bookings, vouchers and sales to the Google Sheet?')) return;
+/* ---------- Starter data (small example set) + clear-all tool (admin) ---------- */
+function buildStarterTables() {
   const live = DB, liveNow = NOW;
   try {
-    DB = seedData(); DB.imap = Object.fromEntries(DB.items.map(i => [i.code, i])); NOW = new Date(SEED_NOW); buildSeedBookings();
+    const base = seedData();
+    const map = { G021: 'G001', C043: 'C001', D015: 'D001', J027: 'J001', G014: 'G002' };
+    const today0 = new Date();
+    const items = Object.keys(map).map(c => ({ ...base.items.find(x => x.code === c), code: map[c], prev: { rentals: 0, revenue: 0 }, repairCost: 0, status: 'in', log: [], addedOn: fDateS(today0) + ' ' + today0.getFullYear() }));
+    DB = { ...base, items, customers: base.customers.slice(0, 5), vouchers: base.vouchers.filter(v => v.code !== 'EARLYBIRD'), sales: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1005 } };
+    DB.imap = Object.fromEntries(items.map(i => [i.code, i]));
+    NOW = new Date();
+    const today = sod(NOW), by = (CUR && CUR.name) || 'Shop Owner';
+    const mk = (cid, codes, evOffset, pkgKey) => {
+      const d = datesForEvent(addDays(today, evOffset)), p = pkgKey ? DB.packages.find(x => x.key === pkgKey) : null;
+      const b = makeBooking({ customerId: cid, lines: codes.map(c => ({ code: c, pkg: p ? 0 : null })), pkgs: p ? [{ key: p.key, name: p.name, price: p.price }] : [], ...d, createdAt: addDays(d.pickupAt, -3), by });
+      recordPayment(b, money(b).rentNet + b.depositDue, 'UPI', b.createdAt, by); DB.bookings.push(b); return b;
+    };
+    const b1 = mk('CU-1003', ['G001', 'C001', 'J001'], -6);            // returned & closed, with a damage charge
+    handoverCore(b1, addMin(b1.pickupAt, 20), by, 0, 'UPI');
+    completeCore(b1, { at: addMin(b1.returnBy, -60), by, lines: { G001: { cond: 'good', charge: 0 }, C001: { cond: 'minor', charge: 300, note: 'Hook loose' }, J001: { cond: 'good', charge: 0 } }, lateFeeAmt: 0, lateMins: 0, refundMode: 'UPI' });
+    const b2 = mk('CU-1001', ['G002', 'D001'], 0);                       // out with customer, returns tomorrow
+    handoverCore(b2, addMin(b2.pickupAt, 25), by, 0, 'Cash');
+    mk('CU-1002', ['G001', 'C001', 'D001', 'J001'], 3, 'glam');           // upcoming Garba Glam package
     const t = toTables(DB); delete t.Users; delete t.Settings;
-    DB = live; NOW = liveNow;
-    toast('Uploading sample data… (can take ~30 seconds)');
+    return t;
+  } finally { DB = live; NOW = liveNow; }
+}
+async function importSample() {
+  if (!LIVE) return toast('Connect a Google Sheet first');
+  if (DB.items.length && !confirm('The sheet already has data. For a clean start use “Clear all data” first. Add the starter rows anyway?')) return;
+  if (!DB.items.length && !confirm('Add starter data (5 items, 5 customers, 3 bookings, packages, vouchers) to the Google Sheet?')) return;
+  try {
+    const t = buildStarterTables();
+    toast('Uploading starter data…');
     const r = await api('commit', { changes: t, newBookings: [] });
     if (!r.ok) return toast('Import failed: ' + r.error, 'bad');
-    audit('Sample data imported', 'Google Sheet', `${t.Items.length} items · ${t.Bookings.length} bookings`);
-    await reloadData(); toast('Sample data is now in your Google Sheet', 'good');
-  } catch (e) { DB = live; NOW = liveNow; toast('Import failed — check internet', 'bad'); }
+    audit('Starter data loaded', 'Google Sheet', `${t.Items.length} items · ${t.Bookings.length} bookings`);
+    await reloadData(); toast('Starter data is in your Google Sheet — edit it to match your shop', 'good');
+  } catch (e) { toast('Import failed — check internet', 'bad'); }
+}
+function clearDataModal() {
+  openModal({
+    title: 'Clear all data', body: `<div class="stack"><div class="banner danger">${ic('alert')}<div>Removes <b>all items, customers, bookings, payments, returns, sales, vouchers, packages, history and audit rows</b> from the Google Sheet. Users, PINs and settings are kept.</div></div>
+      <div class="hint">Use this once before entering your real stock. If done by mistake, restore from the sheet: File → Version history.</div>
+      <div class="field"><label>Type CLEAR to confirm</label><input class="input mono" id="cd_c" autocomplete="off"></div>
+      <div class="field"><label>Your PIN</label><input class="input mono" id="cd_p" type="password" inputmode="numeric" maxlength="6"></div><div id="cdErr" class="err"></div></div>`,
+    foot: `<button class="btn btn-lg" onclick="closeModal()">Cancel</button><button class="btn btn-danger btn-lg" id="cdGo" onclick="doClearData()">Clear everything</button>`,
+  });
+}
+async function doClearData() {
+  if ($('#cd_c').value.trim().toUpperCase() !== 'CLEAR') return $('#cdErr').textContent = 'Type CLEAR to confirm';
+  const btn = $('#cdGo'); btn.disabled = true; btn.textContent = 'Clearing…';
+  try {
+    const r = await api('resetData', { pin: $('#cd_p').value.trim() });
+    if (!r.ok) { btn.disabled = false; btn.textContent = 'Clear everything'; return $('#cdErr').textContent = r.code === 'error' && /Unknown action/.test(r.error) ? 'Update the Apps Script first (paste the new Code.gs → Manage deployments → New version).' : r.error; }
+    closeModal(); await reloadData(true); toast('All data cleared. Users and settings kept.', 'good');
+  } catch (e) { btn.disabled = false; btn.textContent = 'Clear everything'; $('#cdErr').textContent = 'No internet'; }
 }
 
 /* =====================================================================

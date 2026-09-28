@@ -85,6 +85,7 @@ function doPost(e) {
       case 'commit': return json(commit(auth(req.token), req.changes || {}, req.newBookings || []));
       case 'verifyPin': auth(req.token); return json(verifyPin(req.pin));
       case 'setPin': return json(setPin(auth(req.token), req.user_id, req.pin));
+      case 'resetData': return json(resetData(auth(req.token), req.pin));
       default: return json({ ok: false, error: 'Unknown action' });
     }
   } catch (err) {
@@ -126,6 +127,25 @@ function setPin(user, userId, pin) {
   if (!/^\d{4,6}$/.test(String(pin))) fail('PIN must be 4–6 digits');
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try { upsertObjects('Users', [{ user_id: userId, pin_hash: hashPin(pin) }]); } finally { lock.releaseLock(); }
+  return { ok: true };
+}
+
+/* Admin tool: empty every data tab (keeps Users + Settings). Needs the admin's own PIN.
+   Google Sheets version history (File → Version history) can still restore old data. */
+function resetData(user, pin) {
+  if (user.role !== 'admin') fail('Only an admin can clear data', 'forbidden');
+  var me = sheetObjects('Users').filter(function (u) { return u.user_id === user.user_id; })[0];
+  if (!me || me.pin_hash !== hashPin(pin)) fail('Wrong PIN');
+  var lock = LockService.getScriptLock(); lock.waitLock(25000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    Object.keys(SCHEMA).forEach(function (t) {
+      if (t === 'Users' || t === 'Settings') return;
+      var sh = ss.getSheetByName(t);
+      if (sh && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
+    });
+    upsertObjects('Audit_Log', [{ audit_id: 'A-' + Utilities.getUuid(), at: new Date().toISOString(), user: user.name, role: 'Admin', action: 'All data cleared', record: 'Google Sheet', details: 'Users and settings kept' }]);
+  } finally { lock.releaseLock(); }
   return { ok: true };
 }
 
