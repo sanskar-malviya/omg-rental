@@ -1407,7 +1407,6 @@ const NAV = [
   { sec: 'Daily' }, { k: 'dashboard', l: 'Dashboard', i: 'home' }, { k: 'returns', l: 'Returns', i: 'ret' }, { k: 'calendar', l: 'Calendar', i: 'calendar' },
   { sec: 'Manage' }, { k: 'inventory', l: 'Inventory', i: 'hanger' }, { k: 'customers', l: 'Customers', i: 'users' }, { k: 'sales', l: 'Sales', i: 'tag', perm: 'sale.create' }, { k: 'vouchers', l: 'Vouchers', i: 'ticket' },
   { sec: 'Business' }, { k: 'reports', l: 'Reports', i: 'chart', perm: 'reports.view' }, { k: 'settings', l: 'Settings', i: 'gear', perm: 'settings.edit' },
-  { sec: 'Prototype' }, { k: 'handoff', l: 'Dev Handoff', i: 'code' },
 ];
 const NAV_ALIAS = { item: 'inventory', customer: 'customers', return: 'returns', booking: 'returns', sale: 'sales', new: 'new' };
 function returnsBadge() { const t0 = sod(NOW), t1 = addDays(t0, 1); return DB.bookings.filter(b => b.status === 'picked' && (b.returnBy < t1)).length; }
@@ -1429,8 +1428,9 @@ function moreSheet() {
   openModal({
     title: 'More', body: `<div class="grid g2">${NAV.filter(n => n.k && !['dashboard', 'inventory', 'customers'].includes(n.k)).map(n => `<button class="btn btn-lg" style="justify-content:flex-start" onclick="closeModal();go('#/${n.k}')">${ic(n.i, 20)} ${n.l}${n.k === 'returns' && rb ? ` <span class="badge">${rb}</span>` : ''}${n.perm && !can(n.perm) ? ` <span class="end muted">${ic('lock', 14)}</span>` : ''}</button>`).join('')}</div>
       <div class="hr" style="margin:16px 0"></div>
-      <div class="stack s8"><div class="lbl">Signed in as</div><div class="seg">${DB.users.map(u => `<button class="${CUR.id === u.id ? 'on' : ''}" onclick="switchUser('${u.id}');closeModal()">${esc(u.name)}</button>`).join('')}</div>
-      <div class="lbl" style="margin-top:8px">Demo clock</div><div class="stack s8">${PRESETS.map(p => `<button class="btn" style="justify-content:flex-start" ${p.at <= NOW ? 'disabled' : ''} onclick="closeModal();setClock(new Date(${p.at.getTime()}))">${ic('clock', 16)} ${p.label}</button>`).join('')}</div></div>`,
+      ${LIVE ? `<div class="stack s8"><div class="lbl">Signed in as</div><div class="row" style="gap:10px"><span class="avatar">${initials(CUR.name)}</span><b class="grow">${esc(CUR.name)}</b><span class="tiny muted">${ROLE_LABEL[CUR.role] || ''}</span></div>
+        <div class="grid g2"><button class="btn btn-lg" style="justify-content:flex-start" onclick="closeModal();pinModal('${CUR.id}')">${ic('key', 20)} Change my PIN</button><button class="btn btn-lg" style="justify-content:flex-start" onclick="closeModal();reloadData()">${ic('refresh', 20)} Refresh data</button><button class="btn btn-lg" style="justify-content:flex-start" onclick="closeModal();logout()">${ic('left', 20)} Log out</button></div></div>` : `      <div class="stack s8"><div class="lbl">Signed in as</div><div class="seg">${DB.users.map(u => `<button class="${CUR.id === u.id ? 'on' : ''}" onclick="switchUser('${u.id}');closeModal()">${esc(u.name)}</button>`).join('')}</div>
+      <div class="lbl" style="margin-top:8px">Demo clock</div><div class="stack s8">${PRESETS.map(p => `<button class="btn" style="justify-content:flex-start" ${p.at <= NOW ? 'disabled' : ''} onclick="closeModal();setClock(new Date(${p.at.getTime()}))">${ic('clock', 16)} ${p.label}</button>`).join('')}</div></div>`}`,
   });
 }
 let TITLE = { t: '', s: '' }, GQ = '';
@@ -1784,6 +1784,10 @@ function icard(it, st) {
   return `<button class="icard" onclick="go('#/item/${it.code}')"><div class="img" style="${tileBg(it.hex)}">${pill(st)}${it.mode !== 'rent' ? `<span class="pill mode" style="background:#fff;color:var(--ink-2)">${it.mode === 'sale' ? 'Sale only' : 'Rent + Sale'}</span>` : ''}${photoOf(it.code) ? `<img src="${photoOf(it.code)}" alt="" loading="lazy">` : art(it.type, it.hex, 118)}</div>
     <div class="b"><div class="row between"><span class="code">${it.code}</span><span class="tiny muted">${esc(it.size)}</span></div><div class="nm">${esc(it.name)}</div>
     <div class="pr"><b>${it.mode === 'sale' ? rs(it.sale) : rs(it.rent)}</b><span class="tiny muted">${it.mode === 'sale' ? 'sale price' : 'per rental'}</span></div></div></button>`;
+}
+function typeChips(cur, onclickTpl, pool) {
+  const n = k => k === 'all' ? pool.length : pool.filter(i => i.type === k).length;
+  return `<div class="chips scroll" style="margin-bottom:12px">${[['all', 'All types'], ...Object.entries(TYPES).map(([k, v]) => [k, v.short])].map(([k, l]) => `<button class="chip ${cur === k ? 'on' : ''}" onclick="${onclickTpl.replace('%', k)}">${l} <span class="tiny muted">${n(k)}</span></button>`).join('')}</div>`;
 }
 function addItemModal() {
   const nextCode = t => t + pad(Math.max(0, ...DB.items.filter(i => i.type === t).map(i => +i.code.slice(t.length) || 0)) + 1);
@@ -2584,13 +2588,16 @@ function scrSales() {
     ${list.map(s => `<tr class="click" onclick="go('#/sale/${s.id}')"><td><b>${s.id}</b></td><td>${fDT(s.at)}</td><td><span class="code">${s.code}</span> ${esc(item(s.code).name)}</td><td>${s.customerId ? esc(cust(s.customerId).name) : 'Walk-in'}</td><td>${s.mode}</td><td class="small">${esc(s.by)}</td><td class="r num"><b>${rs(s.price)}</b>${s.discount ? `<div class="tiny muted">−${rs(s.discount)} ${s.voucher}</div>` : ''}</td></tr>`).join('')}</tbody></table></div>` };
 }
 let SALE = null;
+const SALEF = { type: 'all' };
 function scrSaleNew(r) {
   if (!can('sale.create')) return lockView('Selling items');
   const code = r.q.code;
   if (!code) {
-    const cands = DB.items.filter(it => it.mode !== 'rent' && !['sold', 'lost'].includes(it.status));
+    const all = DB.items.filter(it => it.mode !== 'rent' && !['sold', 'lost'].includes(it.status));
+    const cands = SALEF.type === 'all' ? all : all.filter(it => it.type === SALEF.type);
     return {
       t: 'New sale', html: `<div class="pagehead"><div class="grow"><h1 class="pg">Sell an item</h1><p>Choose a piece. Pieces with open bookings can’t be sold until they’re free.</p></div></div>
+      ${typeChips(SALEF.type, "SALEF.type='%';render()", all)}
       <div class="card"><div class="list">${cands.map(it => { const bl = saleBlock(it); return `<div class="lrow ${bl ? '' : 'click'}" ${bl ? 'style="opacity:.6"' : `onclick="go('#/sale/new?code=${it.code}')"`}>${thumb(it)}<div class="grow"><span class="code">${it.code}</span> <b>${esc(it.name)}</b><div class="tiny muted">${MODES[it.mode]} · ${esc(it.size)}</div>${bl ? `<div class="tiny" style="color:var(--danger);font-weight:700">✕ ${esc(bl)}</div>` : ''}</div><b>${rs(it.sale)}</b>${bl ? '' : ic('right', 18)}</div>`; }).join('')}</div></div>` };
   }
   const it = item(code); if (!it) return { t: 'Sale', html: emptyState('Item not found') };
@@ -2731,7 +2738,7 @@ function scrReports(r) {
   if (!can('reports.view')) return lockView('Reports');
   tourMark('rep');
   if (r.parts[1]) REP.tab = r.parts[1];
-  const d = repData(), [, , rl] = repRange();
+  const d = repData(), [, , rl] = repRange(); d.rows = repRows(d);
   const fmt = (c, v) => c.startsWith('₹') && typeof v === 'number' ? rs(v) : esc(v);
   const tabs = [['revenue', 'Revenue'], ['rentals', 'Rentals'], ['returns', 'Returns'], ['deposits', 'Deposits'], ['sales', 'Sales'], ['items', 'Item performance']];
   return {
@@ -2740,6 +2747,7 @@ function scrReports(r) {
       <div class="chips">${[['today', 'Today'], ['week', '7 days'], ['season', 'Season'], ['all', 'All']].map(([k, l]) => `<button class="chip ${REP.range === k ? 'on' : ''}" onclick="REP.range='${k}';render()">${l}</button>`).join('')}</div>
       <button class="btn btn-lg" onclick="exportReport()">${ic('download', 18)} Export CSV</button></div>
     <div class="tabs">${tabs.map(([k, l]) => `<button class="${REP.tab === k ? 'on' : ''}" onclick="go('#/reports/${k}')">${l}</button>`).join('')}</div>
+    ${REP.tab === 'items' ? typeChips(REP.type || 'all', "REP.type='%';render()", DB.items) : ''}
     <div class="grid g4" style="margin-bottom:16px">${d.tiles.map(([l, v]) => `<div class="card pad"><div class="eyebrow">${l}</div><div style="font-size:24px;font-weight:800;margin-top:4px" class="num">${v}</div></div>`).join('')}</div>
     ${d.note ? `<div class="banner info" style="margin-bottom:14px;font-weight:500">${ic('alert', 18)} ${d.note}</div>` : ''}
     <div class="card tbl-wrap"><table class="tbl nowrap"><thead><tr>${d.cols.map(c => `<th class="${c.startsWith('₹') || /Rentals|ROI|Late \(/.test(c) ? 'r' : ''}">${c.replace('₹', '')}</th>`).join('')}</tr></thead>
@@ -2752,7 +2760,8 @@ function downloadCSV(name, cols, rows) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
   audit('Data exported', name, `${rows.length} rows`); toast(`${name} downloaded (${rows.length} rows)`, 'good');
 }
-function exportReport() { const d = repData(); downloadCSV(`omg-rental-${REP.tab}-${isoDay(NOW)}.csv`, d.cols, d.rows); }
+function repRows(d) { return REP.tab === 'items' && REP.type && REP.type !== 'all' ? d.rows.filter(row => (item(row[0]) || {}).type === REP.type) : d.rows; }
+function exportReport() { const d = repData(); d.rows = repRows(d); downloadCSV(`omg-rental-${REP.tab}-${isoDay(NOW)}.csv`, d.cols, d.rows); }
 
 /* ---------- SETTINGS ---------- */
 function setSetting(k, v) {
@@ -3076,7 +3085,7 @@ async function renderLogin() {
       : `<div class="row"><span class="avatar">${initials(u.name)}</span><b class="grow">${esc(u.name)}</b><button class="btn btn-sm" onclick="LOGIN.sel=null;LOGIN.pin='';renderLogin()">Change</button></div>
       <div class="input big mono" style="display:flex;align-items:center;justify-content:center;letter-spacing:10px">${LOGIN.pin.replace(/./g, '●') || '<span class="muted" style="letter-spacing:0;font-size:15px;font-weight:600">Enter PIN</span>'}</div>
       <div class="grid g3" style="gap:8px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '✓'].map(k => `<button class="btn btn-xl ${k === '✓' ? 'btn-primary' : ''}" ${LOGIN.busy ? 'disabled' : ''} onclick="pinKey('${k}')">${k}</button>`).join('')}</div>`}
-    <button class="btn btn-lg" onclick="go('#/catalog')">${ic('hanger', 18)} Browse catalogue</button><button class="btn btn-ghost btn-sm" onclick="connectModal()">${ic('gear', 15)} Connection settings</button></div>`;
+    <button class="btn btn-lg" onclick="go('#/catalog')">${ic('hanger', 18)} Browse catalogue</button></div>`;
 }
 function pinKey(k) {
   if (k === '⌫') LOGIN.pin = LOGIN.pin.slice(0, -1);
@@ -3341,7 +3350,7 @@ function pubCard(it) {
 function pubList() {
   const day = PUBQ.date ? parseIso(PUBQ.date) : null, q = PUBQ.q.trim().toLowerCase();
   let list = PUB.items.slice();
-  const types = Object.keys(TYPES).filter(k => list.some(i => i.type === k));
+  const types = Object.keys(TYPES);
   if (PUBQ.type !== 'all') list = list.filter(i => i.type === PUBQ.type);
   if (q) list = list.filter(i => [i.code, i.name, i.colour, i.style, i.size, pubType(i)].join(' ').toLowerCase().includes(q));
   if (day) list = list.filter(i => pubFree(i.code, day));
@@ -3409,7 +3418,7 @@ const ROUTES = {
   customers: r => scrCustomers(r), customer: r => scrCustomer(r.parts[1]), new: () => scrWizard(),
   booking: r => scrBooking(r.parts[1], r), return: r => scrReturn(r.parts[1], r), returns: r => scrReturns(r),
   calendar: () => scrCalendar(), sales: () => scrSales(), sale: r => r.parts[1] === 'new' ? scrSaleNew(r) : scrSaleView(r.parts[1]),
-  vouchers: r => r.parts[1] === 'new' ? scrVoucherNew() : scrVouchers(), reports: r => scrReports(r), settings: r => scrSettings(r), handoff: () => scrHandoff(),
+  vouchers: r => r.parts[1] === 'new' ? scrVoucherNew() : scrVouchers(), reports: r => scrReports(r), settings: r => scrSettings(r), handoff: () => LIVE ? { t: 'Not found', html: emptyState('Page not found', '<a href="#/dashboard">Go to dashboard</a>') } : scrHandoff(),
 };
 function render() {
   if (LIVE && !TOKEN) return isPublicRoute() ? renderPublic() : renderLogin();   // QR scans without login → public catalogue
