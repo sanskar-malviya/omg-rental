@@ -102,6 +102,7 @@ h3{font-size:16px;margin:0}
 .between{justify-content:space-between} .grow{flex:1;min-width:0} .end{margin-left:auto}
 .stack{display:flex;flex-direction:column;gap:12px} .stack.s8{gap:8px} .stack.s16{gap:16px} .stack.s20{gap:20px}
 .grid{display:grid;gap:16px}
+.grid>*,.split>*,.split-l>*{min-width:0}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))} .g3{grid-template-columns:repeat(3,minmax(0,1fr))} .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
 .split-l{display:grid;grid-template-columns:380px minmax(0,1fr);gap:20px;align-items:start}
@@ -439,7 +440,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   .split-l{grid-template-columns:320px minmax(0,1fr)}
 }
 @media (max-width:960px){
-  .split,.split-l{grid-template-columns:1fr}
+  .split,.split-l{grid-template-columns:minmax(0,1fr)}
   .sticky{position:static}
   .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
   .g3{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -467,7 +468,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   .who{padding:0 4px;height:42px}
   .page{padding:16px 16px 110px}
   h1.pg{font-size:24px}
-  .g2,.g3,.g4{grid-template-columns:1fr}
+  .g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .stat{min-height:78px;padding:12px}
   .stat .v{font-size:24px}
@@ -482,7 +483,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   .card-h,.card-b,.lrow,.drow,.due-head,.retitem{padding-left:14px;padding-right:14px}
   .cal .day{min-height:64px;padding:5px;font-size:10px}
   .cal .ev{padding:1px 4px;gap:3px}
-  .cal .ev .lbl2{display:none}
+  .cal .lbl2{display:none}
   .mbar{margin:16px -16px -110px;padding:12px 16px 12px;bottom:70px}
   .bottomnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:80;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
   .bottomnav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--muted);padding:6px 0;min-height:54px;justify-content:center;position:relative}
@@ -490,7 +491,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   .bottomnav a.fab span.f{width:54px;height:54px;margin-top:-26px;border-radius:18px;background:linear-gradient(140deg,var(--brand-2),var(--brand-deep));color:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(122,31,75,.4);border:3px solid #fff}
   .bottomnav a.fab{color:var(--brand)}
   .bottomnav .badge{position:absolute;top:2px;right:18%;min-width:18px;height:18px;font-size:10px}
-  .tour-fab{bottom:84px;right:12px;min-height:46px;padding:0 14px 0 10px}
+  .tour-fab{bottom:150px;right:10px;min-height:44px;padding:0 10px 0 8px;opacity:.92}
   .tour-fab .tl{display:none}
   .tour{right:8px;left:8px;width:auto;bottom:140px}
   .scrim{align-items:end;padding:0}
@@ -530,6 +531,14 @@ body.login-mode .app{grid-template-columns:1fr}
   .drow .acts{width:100%}
   .drow .acts>.btn,.drow .acts>a.btn{flex:1 1 auto}
   .pagehead{gap:10px}
+  .pagehead>.grow{flex:1 1 100%}
+  .row.wrap>.grow{flex:1 1 200px}
+  .lrow{flex-wrap:wrap}
+  .lrow>.grow,.lrow>.who2{flex:1 1 150px}
+  .doc pre{font-size:11.5px}
+  .banner{align-items:flex-start}
+  .row>.btn-xl{flex:1 1 auto;min-width:0;white-space:normal;font-size:15.5px;padding:8px 14px;line-height:1.2}
+  .lrow.click>svg:last-child{display:none}
   .pagehead>.btn,.pagehead>a.btn{flex:1 1 auto}
   .pagehead .chips{width:100%}
   .modal-f{flex-wrap:wrap}
@@ -2057,7 +2066,7 @@ function wizStep3() {
     <div class="card"><div class="card-h">${ic('wallet', 20)}<h3 class="grow">Payment</h3></div><div class="card-b stack">
       <div class="row wrap"><div class="grow"><div class="lbl">Due now</div><div style="font-size:30px;font-weight:800">${rs(wDueNow(q))}</div><div class="tiny muted">Rent ${rs(q.rentNet)}${W.depTiming === 'now' ? ` + deposit ${rs(wDeposit(q))}` : ''}</div></div>
         <div class="field" style="width:220px"><label>Amount received</label><div class="input-wrap"><span class="pre">₹</span><input class="input big" id="wpay" type="number" inputmode="numeric" value="${wPay(q)}" onchange="W.payAmt=Math.max(0,+this.value);render()"></div></div></div>
-      ${wPay(q) < wDueNow(q) ? `<div class="banner warn">${ic('alert')} Partial payment (advance). Balance of ${rs(q.rentNet + wDeposit(q) - wPay(q))} will show as <b>&nbsp;pending&nbsp;</b> until collected.</div>` : ''}
+      ${wPay(q) < wDueNow(q) ? `<div class="banner warn">${ic('alert')}<span>Partial payment (advance). Balance of ${rs(q.rentNet + wDeposit(q) - wPay(q))} will show as <b>pending</b> until collected.</span></div>` : ''}
       <div class="lbl">Payment mode</div><div class="seg">${PAY_MODES.map(p => `<button class="${W.payMode === p ? 'on' : ''}" onclick="W.payMode='${p}';render()">${p}</button>`).join('')}</div>
       ${W.payMode === 'UPI' ? `<div class="hint">Show the shop UPI QR · note the UTR / reference in the real app.</div>` : ''}</div></div>
     ${wizNav('Review')}`;
@@ -2187,7 +2196,7 @@ function payModal(no) {
 function cancelModal(no, approver) {
   const b = bk(no), m = money(b);
   openModal({
-    title: `Cancel ${no}`, body: `<div class="stack"><div class="banner warn">${ic('alert')} The booking stays in the system as <b>&nbsp;Cancelled&nbsp;</b>. Items are released for other customers.</div>
+    title: `Cancel ${no}`, body: `<div class="stack"><div class="banner warn">${ic('alert')}<span>The booking stays in the system as <b>Cancelled</b>. Items are released for other customers.</span></div>
       <div class="field"><label>Reason (required)</label><input class="input" id="cnr" placeholder="e.g. event cancelled by customer"></div>
       <div class="grid g2"><div class="field"><label>Refund rent (paid ${rs(m.rentPaid)})</label><div class="input-wrap"><span class="pre">₹</span><input class="input" id="cnrent" type="number" value="${m.rentPaid}"></div></div><div class="field"><label>Refund deposit (paid ${rs(m.depPaid)})</label><div class="input-wrap"><span class="pre">₹</span><input class="input" id="cndep" type="number" value="${m.depPaid}"></div></div></div>
       <div class="field"><label>Refund mode</label><select class="input" id="cnm">${REFUND_MODES.map(x => `<option>${x}</option>`).join('')}</select></div><div id="cne" class="err"></div></div>`,
@@ -2386,7 +2395,7 @@ function scrSaleNew(r) {
         ${SALE.vmsg && !SALE.vok ? `<div class="err">${esc(SALE.vmsg)}</div>` : ''}
         <div class="lbl">Payment mode</div><div class="seg">${PAY_MODES.map(p => `<button class="${SALE.mode === p ? 'on' : ''}" onclick="SALE.mode='${p}';render()">${p}</button>`).join('')}</div></div></div>
     <div class="sticky"><div class="card pad summary"><h3 style="margin-bottom:8px">Sale summary</h3><div class="line"><span>${it.code} ${esc(TYPES[it.type].short)}</span><span>${rs(SALE.price)}</span></div>${disc ? `<div class="line neg"><span>${SALE.voucher}</span><span>−${rs(disc)}</span></div>` : ''}<div class="line t"><span>Total</span><span>${rs(total)}</span></div>
-      <div class="banner warn" style="margin:12px 0;font-weight:500;font-size:13px">${ic('alert', 18)} After this sale ${it.code} is marked <b>&nbsp;SOLD&nbsp;</b> and removed from rental search. Its history is kept.</div>
+      <div class="banner warn" style="margin:12px 0;font-weight:500;font-size:13px">${ic('alert', 18)}<span>After this sale ${it.code} is marked <b>SOLD</b> and removed from rental search. Its history is kept.</span></div>
       <button class="btn btn-primary btn-xl btn-block" ${c || SALE.walkIn ? '' : 'disabled'} onclick="saleConfirm()">${ic('check', 20, 2.6)} Confirm sale · ${rs(total)}</button>${c || SALE.walkIn ? '' : '<div class="hint" style="text-align:center;margin-top:6px">Pick a customer or walk-in</div>'}</div></div></div>`,
     after: () => { saleCustRes(); },
   };
