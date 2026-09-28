@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#5b1638">
+<meta name="apple-mobile-web-app-title" content="OMG Rental">
+<meta name="application-name" content="OMG Rental">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f0b24a'/><stop offset='.55' stop-color='%23d9632e'/><stop offset='1' stop-color='%23b0265e'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(%23g)'/><text x='32' y='41' font-family='Georgia,serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'>OMG</text></svg>">
 <title>OMG Rental — Smart Rental Management</title>
 <!--
   OMG Rental · Clickable UX prototype (v1)
@@ -2705,6 +2708,7 @@ GET  /reports/:type?from&to&format=csv</code></pre></div>
 const API_URL = (() => { try { return localStorage.getItem('omg_api_url') || window.OMG_API_URL || ''; } catch (e) { return window.OMG_API_URL || ''; } })();
 const LIVE = !!API_URL;
 let TOKEN = null, SYNCED = {}, PENDING_NEW = new Set();
+let LOADED = false;   // true only after the sheet data has been loaded — nothing is saved before that
 const SYNC = { state: 'idle', msg: '', busy: null, again: false, at: null };
 const TABLE_KEYS = { Collections: 'collection_id', Items: 'item_code', Packages: 'package_id', Customers: 'customer_id', Bookings: 'booking_no', Booking_Items: 'line_id', Payments: 'payment_id', Booking_Events: 'event_id', Returns: 'booking_no', Return_Items: 'line_id', Sales: 'sale_id', Vouchers: 'code', Users: 'user_id', Settings: 'key', Item_History: 'history_id', Audit_Log: 'audit_id', Item_Photos: 'photo_id' };
 let PHOTOS_ON = false;
@@ -2802,7 +2806,7 @@ function syncChip() {
   return `<button id="syncchip" class="pill ${cls}" style="height:44px;padding:0 12px;border:0;cursor:pointer" title="${esc(SYNC.msg || 'All changes are saved to the Google Sheet')}" onclick="${s === 'offline' || s === 'error' ? 'sync()' : 'reloadData()'}">${ic(s === 'saving' ? 'refresh' : s === 'offline' || s === 'error' ? 'alert' : 'cloud', 16)} <span class="sync-l">${l}</span></button>`;
 }
 function sync() {
-  if (!LIVE || !TOKEN) return Promise.resolve({ ok: true });
+  if (!LIVE || !TOKEN || !LOADED) return Promise.resolve({ ok: true });
   if (SYNC.busy) { SYNC.again = true; return SYNC.busy; }
   const d = diffDB(); if (!d.n) { if (SYNC.state === 'saving') setSync('saved'); return Promise.resolve({ ok: true }); }
   const newB = [...PENDING_NEW];
@@ -2827,7 +2831,7 @@ async function reloadData(quiet) {
   if (!LIVE || !TOKEN) return;
   try {
     const r = await api('load'); if (!r.ok) { if (r.code !== 'auth') toast('Could not load data: ' + r.error, 'bad'); return; }
-    DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled;
+    DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled; LOADED = true;
     CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };
     setSync('saved'); render(); if (!quiet) toast('Up to date with the Google Sheet', 'good');
   } catch (e) { setSync('offline', 'No internet'); }
@@ -2842,7 +2846,7 @@ function startLiveTimers() {
 
 /* ---------- Login ---------- */
 let LOGIN = { users: null, sel: null, pin: '', err: '', busy: false };
-function logoutLocal() { TOKEN = null; try { localStorage.removeItem('omg_session'); } catch (e) { } document.body.classList.add('login-mode'); LOGIN.pin = ''; renderLogin(); }
+function logoutLocal() { TOKEN = null; LOADED = false; try { localStorage.removeItem('omg_session'); } catch (e) { } document.body.classList.add('login-mode'); LOGIN.pin = ''; renderLogin(); }
 async function logout() { if (diffDB().n && !confirm('Some changes are not saved yet. Log out anyway?')) return; try { await api('logout'); } catch (e) { } logoutLocal(); }
 async function renderLogin() {
   document.body.classList.add('login-mode');
@@ -2883,7 +2887,7 @@ async function enterLive() {
   $('#page').innerHTML = `<div class="login-card card pad" style="text-align:center"><h3>Loading your shop data…</h3><p class="muted small">Reading the Google Sheet</p></div>`;
   const r = await api('load');
   if (!r.ok) { if (r.code !== 'auth') { LOGIN.err = r.error; logoutLocal(); } return; }
-  DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled;
+  DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled; LOADED = true;
   CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };
   NOW = new Date(); document.body.classList.remove('login-mode'); TOUR.open = false;
   audit('Signed in', 'Session', navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Tablet / desktop');
@@ -3073,6 +3077,7 @@ const ROUTES = {
 };
 function render() {
   if (LIVE && !TOKEN) return renderLogin();
+  if (LIVE && !LOADED) return;   // still loading the sheet — show nothing, save nothing
   if (LIVE) NOW = new Date();
   const r = parseRoute(); const fn = ROUTES[r.name] || ROUTES.dashboard;
   let out;
@@ -3097,7 +3102,7 @@ function go(h) { if (location.hash === h) render(); else location.hash = h; }
 window.addEventListener('hashchange', () => { closeModal(); render(); window.scrollTo(0, 0); });
 function boot() {
   if (LIVE) {
-    DB = seedData(); DB.imap = {}; NOW = new Date(); CUR = DB.users[0]; TOUR.open = false; startLiveTimers();
+    DB = fromTables({}); NOW = new Date(); CUR = { id: '', name: '', role: 'staff' }; TOUR.open = false; startLiveTimers();   // empty until the sheet loads — never demo data
     let sess = null; try { sess = JSON.parse(localStorage.getItem('omg_session') || 'null'); } catch (e) { }
     if (sess && sess.token) { TOKEN = sess.token; enterLive().catch(() => { TOKEN = null; renderLogin(); }); } else renderLogin();
     return;
