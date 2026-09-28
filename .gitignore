@@ -5,3 +5,6 @@ Thumbs.db
 .env
 # Older prototype kept locally only
 OMG_Rental_Clickable_Prototype (1).html
+
+# Local Claude Code settings
+.claude/
