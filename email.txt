@@ -17,7 +17,6 @@ The application should support sending emails through our business email account
 IMPORTANT:
 
 
-* Credentials must never appear in GitHub, source code, browser code, logs or admin screens.
 * Only Admin should be able to configure email settings.
 * The system should record whether an email was successfully sent, failed or is pending.
 
@@ -34,7 +33,7 @@ Admin settings should include:
 * Reply-to email
 * Test email function
 
-The actual secret/password should always be masked.
+
 
 ---
 

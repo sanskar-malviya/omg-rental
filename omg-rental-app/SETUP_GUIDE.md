@@ -92,3 +92,26 @@ Files are stored as `items/<ITEM CODE>/…jpg`, `damage/<BOOKING NO>/<ITEM CODE>
 - **Full collection** (`https://omgrental.netlify.app/#/catalog`) lists every piece with search, type filter and "free on date" filter. Share this link on WhatsApp or Instagram.
 - Every other page (dashboard, customers, bookings, reports, settings) still needs a staff login. Staff who are logged in see the full item page with prices when they scan.
 - Sold and lost pieces are hidden automatically. Photos come from the item photos (ID proofs are never shown).
+
+## Emails, receipts & reminders
+Emails are sent by the Apps Script through Gmail. Every email is recorded in the **Email_Log** tab first, so nothing is sent twice.
+
+**What goes out automatically** (only to customers who have an email and have not turned emails off):
+- Booking confirmation + PDF receipt · booking updated · cancellation
+- Pickup reminder (day before, 6 PM) · pickup day (9 AM) · balance-due reminder
+- Return reminder (day before, 6 PM) · return due today (8 AM)
+- Overdue: 12:15 PM, 3 PM, 7 PM (only the latest one, never a burst) · late fee notice
+- Return received · settlement with damage, late fee and refund + PDF
+- Purchase receipt + PDF · review request (after the return is closed, if a Google review link is set)
+- Daily 8:30 AM summary to the staff email (overdue, returns, pickups, balances, inspections)
+
+All times, texts and on/off switches: **Settings → Email & reminders** (owner only).
+
+### One-time setup
+1. **Send from your business Gmail** (if it is not the Google account that owns the sheet): sign in to Gmail of the account that owns the sheet/script → ⚙ **See all settings → Accounts → Send mail as → Add another email address** → your business address → SMTP server , port , username = business email, password = the business Gmail **App Password**, TLS → confirm the code that arrives in the business inbox. The App Password stays inside Gmail — it is never stored in the app, the sheet or GitHub.
+2. Paste the latest  into Apps Script → Save.
+3. Choose **setupEmail** → **Run** → **Allow** (Gmail send + triggers). It switches on the 15-minute reminder run and emails you a test.
+4. **Deploy → Manage deployments → ✏️ → New version → Deploy.**
+5. In the app: Settings → Email & reminders → fill **Sender email**, **Reply-to**, **Staff email**, address, Google Maps link and review link → **Send test**.
+
+Gmail limits: about 100 emails/day for a normal Gmail account, 1,500 for Google Workspace. The Settings page shows how many are left today.

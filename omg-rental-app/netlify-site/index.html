@@ -898,7 +898,7 @@ function seedData() {
   const custNames = ['Aditi Joshi', 'Neha Sharma', 'Riya Jain', 'Priya Patel', 'Kavya Agrawal', 'Sneha Verma', 'Ishita Gupta', 'Pooja Rathore', 'Ananya Maheshwari', 'Megha Solanki', 'Tanvi Chouhan', 'Shruti Dubey', 'Nidhi Khandelwal', 'Palak Mehta', 'Aarti Yadav', 'Diksha Soni', 'Komal Parmar', 'Simran Bhatia', 'Rashmi Tiwari', 'Juhi Porwal', 'Muskan Garg', 'Vaishali Pandey', 'Khushi Malviya', 'Sakshi Bansal', 'Trisha Kothari'];
   const customers = custNames.map((n, i) => {
     const mob = i === 0 ? '9826012345' : String(9826000000 + (i * 73919) % 999999 + 100000 * ((i % 7) + 1)).slice(0, 10);
-    return { id: 'CU-' + (1001 + i), name: n, mobile: mob, whatsapp: mob, email: i % 3 === 0 ? n.toLowerCase().replace(' ', '.') + '@gmail.com' : '', address: ['Vijay Nagar', 'Palasia', 'Rajendra Nagar', 'Sudama Nagar', 'Bhawarkuan', 'Saket', 'Annapurna', 'Nipania'][i % 8] + ', Indore', notes: '', since: i < 14 ? 'Sep 2025' : 'Sep 2026', salonClient: i % 4 === 0 };
+    return { id: 'CU-' + (1001 + i), name: n, mobile: mob, whatsapp: mob, email: i % 3 === 0 ? n.toLowerCase().replace(' ', '.') + '@example.com' : '', address: ['Vijay Nagar', 'Palasia', 'Rajendra Nagar', 'Sudama Nagar', 'Bhawarkuan', 'Saket', 'Annapurna', 'Nipania'][i % 8] + ', Indore', notes: '', since: i < 14 ? 'Sep 2025' : 'Sep 2026', salonClient: i % 4 === 0 };
   });
   customers[0].notes = 'Also an OMG Salon client (bridal makeup trial booked for Nov).';
   customers[16].notes = 'Returned late once in 2025.';
@@ -2082,6 +2082,7 @@ function newCustomerModal(prefill = '', after) {
       <div class="field"><label>WhatsApp number</label><input class="input" id="nc_w" inputmode="numeric" maxlength="10" placeholder="Same as mobile"></div>
       <div class="field"><label>Email (optional)</label><input class="input" id="nc_e" type="email"></div>
       <div class="field" style="grid-column:1/-1"><label>Address (optional)</label><input class="input" id="nc_a" placeholder="Area, Indore"></div>
+      <div class="field" style="grid-column:1/-1"><label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="nc_pe" checked style="width:20px;height:20px"> Email booking confirmations, receipts &amp; reminders</label><label class="row" style="gap:8px;font-weight:600;margin-top:6px"><input type="checkbox" id="nc_pm" style="width:20px;height:20px"> Customer agrees to receive offers &amp; new collections</label></div>
       <div class="field"><label>ID proof type</label><select class="input" id="nc_it">${ID_TYPES.map(t => `<option>${t}</option>`).join('')}</select></div>
       <div class="field"><label>ID number — last 4 digits</label><input class="input mono" id="nc_i4" inputmode="numeric" maxlength="4" placeholder="e.g. 4821"></div>
       <div class="field" style="grid-column:1/-1"><label>ID card photo (front & back)</label><label class="btn btn-soft upbtn" style="justify-content:flex-start">${ic('plus', 18)} <span id="nc_idl">Take / choose photo</span><input type="file" id="nc_idf" accept="image/*" multiple onchange="$('#nc_idl').textContent=this.files.length?this.files.length+' photo(s) selected':'Take / choose photo'"></label><span class="hint">Compressed and saved to GitHub. Only Owner / Manager can view it in the app.</span></div></div><div id="ncErr" class="err" style="margin-top:8px"></div>`,
@@ -2096,7 +2097,8 @@ function newCustomerModal(prefill = '', after) {
     const i4 = $('#nc_i4').value.replace(/\D/g, '');
     if (i4 && i4.length !== 4) return $('#ncErr').textContent = 'ID number: enter only the last 4 digits.';
     const idFiles = [...($('#nc_idf').files || [])];
-    const c = { id: 'CU-' + (++DB.seq.customer), name, mobile: mob, whatsapp: $('#nc_w').value.replace(/\D/g, '') || mob, email: $('#nc_e').value, address: $('#nc_a').value, notes: '', since: 'Sep 2026', idType: $('#nc_it').value, idLast4: i4 };
+    const c = { id: 'CU-' + (++DB.seq.customer), name, mobile: mob, whatsapp: $('#nc_w').value.replace(/\D/g, '') || mob, email: $('#nc_e').value, address: $('#nc_a').value, notes: '', since: 'Sep 2026', idType: $('#nc_it').value, idLast4: i4, prefs: { email: $('#nc_pe').checked, whatsapp: true, sms: true, marketing: $('#nc_pm').checked } };
+    const em = c.email.trim(); if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { --DB.seq.customer; return $('#ncErr').textContent = 'That email does not look right.'; }
     DB.customers.push(c); audit('Customer created', c.id, name); closeModal();
     if (idFiles.length) addPhotos({ files: idFiles }, c.id, 'id');
     toast(`${name} added`, 'good');
@@ -2122,9 +2124,10 @@ function scrCustomer(id) {
       <div class="card pad"><div class="eyebrow">Total spent</div><div style="font-size:26px;font-weight:800">${rs(s.spent)}</div></div>
       <div class="card pad"><div class="eyebrow">Deposit held now</div><div style="font-size:26px;font-weight:800">${rs(s.held)}</div></div>
       <div class="card pad"><div class="eyebrow">Outstanding</div><div style="font-size:26px;font-weight:800;color:${s.outstanding ? 'var(--danger)' : 'inherit'}">${rs(s.outstanding)}</div></div></div>
-    <div class="tabs">${[['rentals', 'Rental history'], ['deposits', 'Deposit history'], ['notes', 'Notes']].map(([k, l]) => `<button class="${CTAB.t === k ? 'on' : ''}" onclick="CTAB.t='${k}';render()">${l}</button>`).join('')}</div>
+    <div class="tabs">${[['rentals', 'Rental history'], ['deposits', 'Deposit history'], ['messages', 'Emails & preferences'], ['notes', 'Notes']].map(([k, l]) => `<button class="${CTAB.t === k ? 'on' : ''}" onclick="CTAB.t='${k}';render()">${l}</button>`).join('')}</div>
     ${CTAB.t === 'rentals' ? `<div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Booking</th><th>Event</th><th>Items</th><th class="r">Rent</th><th class="r">Deposit</th><th>Status</th></tr></thead><tbody>${s.bs.sort((a, b) => b.pickupAt - a.pickupAt).map(b => `<tr class="click" onclick="go('#/booking/${b.no}')"><td><b>${b.no}</b></td><td>${fDate(b.eventDate)}</td><td><div class="itemchips">${codeChips(b)}</div></td><td class="r num">${rs(money(b).rentNet)}</td><td class="r num">${rs(b.depositDue)}</td><td>${bpill(b)}</td></tr>`).join('') || `<tr><td colspan="6">${emptyState('No rentals yet')}</td></tr>`}</tbody></table></div>` : ''}
     ${CTAB.t === 'deposits' ? `<div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Booking</th><th>Entry</th><th>Mode</th><th class="r">Amount</th></tr></thead><tbody>${dep.map(p => `<tr><td>${fDT(p.at)}</td><td>${p.b.no}</td><td>${{ deposit: 'Deposit collected', topup: 'Extra collected at return', refund: 'Deposit refunded', damage: 'Damage deducted', late: 'Late fee deducted' }[p.kind]}</td><td>${p.mode}</td><td class="r num">${['refund', 'damage', 'late'].includes(p.kind) ? '−' : ''}${rs(p.amount)}</td></tr>`).join('') || `<tr><td colspan="5">${emptyState('No deposits')}</td></tr>`}</tbody></table></div>` : ''}
+    ${CTAB.t === 'messages' ? custEmailTab(c) : ''}
     ${CTAB.t === 'notes' ? `<div class="card pad stack"><textarea class="input" id="cnote" style="min-height:140px" placeholder="e.g. prefers bright colours · size M choli · always returns on time">${esc(c.notes)}</textarea><div class="row"><span class="hint grow">Visible to all staff. Changes are logged.</span><button class="btn btn-primary" onclick="cust('${c.id}').notes=$('#cnote').value;audit('Customer notes edited','${c.id}');toast('Notes saved','good')">Save notes</button></div></div>` : ''}` };
 }
 
@@ -2435,6 +2438,7 @@ function scrBooking(no, r) {
         ${b.lines.map(l => { const it = item(l.code); const r = b.returnInfo && b.returnInfo.lines[l.code]; const cd = r && CONDS.find(x => x.k === r.cond); return `<div class="lrow click" onclick="go('#/item/${l.code}')">${thumb(it)}<div class="grow"><span class="code">${it.code}</span> <b>${esc(it.name)}</b><div class="tiny muted">${esc(it.size)} · list ${rs(l.list)} · allocated ${rs(l.alloc)} · deposit ${rs(l.deposit)}</div>${cd ? `<div class="tiny strong" style="margin-top:3px">Returned: ${cd.label}${+r.charge ? ' · ' + rs(r.charge) : ''}</div>` : ''}${miniPhotos(l.code, b.no)}</div>${pill(istate(it))}</div>`; }).join('')}</div></div>
       <div class="card"><div class="card-h">${ic('wallet', 20)}<h3 class="grow">Payment ledger</h3><span class="tiny muted">append-only</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Entry</th><th>Mode</th><th>By</th><th class="r">Amount</th></tr></thead><tbody>
         ${b.payments.map(p => `<tr><td>${fDT(p.at)}</td><td>${KIND[p.kind]}</td><td>${p.mode}</td><td class="small">${esc(p.by)}</td><td class="r num" style="${['refund', 'rent_refund'].includes(p.kind) ? 'color:var(--danger)' : ''}">${['refund', 'rent_refund'].includes(p.kind) ? '−' : ''}${rs(p.amount)}</td></tr>`).join('') || `<tr><td colspan="5">${emptyState('No payments yet')}</td></tr>`}</tbody></table></div></div>
+      ${bookingEmailCard(b)}
       <div class="card"><div class="card-h">${ic('list', 20)}<h3 class="grow">History</h3></div><div class="list mini-list">${b.events.slice().reverse().map(e => `<div class="lrow"><div class="grow small">${esc(e.text)}<div class="tiny muted">${fDT(e.at)} · ${esc(e.by)}</div></div></div>`).join('')}</div></div>
     </div>
     <div class="stack s16 sticky">
@@ -2824,7 +2828,7 @@ function scrSettings(r) {
   const tab = r.parts[1] || (LIVE ? 'timings' : 'connection'); if (tab === 'security') tourMark('sec');
   const s = S();
   const inp = (k, type = 'number', extra = '') => `<input class="input" type="${type}" value="${s[k]}" onchange="setSetting('${k}',this.value)" ${extra}>`;
-  const tabs = [['connection', 'Connection'], ['timings', 'Shop timings'], ['fees', 'Late fees & deposits'], ['roles', 'Users & roles'], ['security', 'Security & data'], ['audit', 'Audit log'], ['data', 'Export & backup']];
+  const tabs = [['connection', 'Connection'], ['timings', 'Shop timings'], ['fees', 'Late fees & deposits'], ['email', 'Email & reminders'], ['roles', 'Users & roles'], ['security', 'Security & data'], ['audit', 'Audit log'], ['data', 'Export & backup']];
   let body = '';
   if (tab === 'connection') {
     body = `<div class="grid g2"><div class="card pad stack"><h3>Database connection</h3>
@@ -2897,6 +2901,7 @@ function scrSettings(r) {
     body = `<div class="card"><div class="card-h"><h3 class="grow">Audit log</h3><span class="tiny muted">${rows.length} entries · append-only · cannot be edited</span><button class="btn btn-sm" onclick="downloadCSV('omg-audit-log.csv',['When','User','Role','Action','Record','Details'],DB.audit.map(a=>[fDT(a.at),a.by,a.role,a.action,a.entity,a.detail]))">${ic('download', 16)} Export</button></div>
       <div class="tbl-wrap" style="max-height:560px;overflow:auto"><table class="tbl"><thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th><th>Details</th></tr></thead><tbody>${rows.slice(0, 250).map(a => `<tr><td class="small" style="white-space:nowrap">${fDT(a.at)}</td><td class="small"><b>${esc(a.by)}</b><div class="tiny muted">${a.role || ''}</div></td><td>${esc(a.action)}</td><td class="mono small">${esc(a.entity)}</td><td class="small">${esc(a.detail)}</td></tr>`).join('')}</tbody></table></div></div>`;
   }
+  if (tab === 'email') body = emailSettingsView();
   if (tab === 'data') {
     const P = []; DB.bookings.forEach(b => b.payments.forEach(p => P.push([fDT(p.at), b.no, cust(b.customerId).name, p.kind, p.mode, p.amount, p.by])));
     window._exp = {
@@ -3004,12 +3009,12 @@ function toTables(db) {
   t.Collections = db.collections.map(c => ({ collection_id: c.id, name: c.name, status: c.status, description: c.desc }));
   t.Items = db.items.map(i => ({ item_code: i.code, type_code: i.type, collection_id: i.collection, name: i.name, colour: i.colour, colour_hex: i.hex, size: i.size, design_style: i.style, purchase_cost: i.cost, rent_price: i.rent, sale_price: i.sale, security_deposit: i.deposit, mode: i.mode, condition: i.condition, physical_status: i.status, notes: i.notes, prev_rentals: i.prev.rentals, prev_revenue: i.prev.revenue, repair_cost: i.repairCost, added_on: i.addedOn }));
   t.Packages = db.packages.map(p => ({ package_id: p.key, name: p.name, price: p.price, description: p.desc, slots: p.slots.join(','), includes_salon_offer: p.salon ? 'yes' : 'no' }));
-  t.Customers = db.customers.map(c => ({ customer_id: c.id, name: c.name, mobile: "'" + c.mobile, whatsapp: "'" + c.whatsapp, email: c.email, address: c.address, customer_since: c.since, omg_salon_client: c.salonClient ? 'yes' : 'no', notes: c.notes, id_type: c.idType || '', id_last4: c.idLast4 ? "'" + c.idLast4 : '' }));
+  t.Customers = db.customers.map(c => ({ customer_id: c.id, name: c.name, mobile: "'" + c.mobile, whatsapp: "'" + c.whatsapp, email: c.email, address: c.address, customer_since: c.since, omg_salon_client: c.salonClient ? 'yes' : 'no', notes: c.notes, id_type: c.idType || '', id_last4: c.idLast4 ? "'" + c.idLast4 : '', email_opt: prefYN(c, 'email'), whatsapp_opt: prefYN(c, 'whatsapp'), sms_opt: prefYN(c, 'sms'), marketing_opt: prefYN(c, 'marketing') }));
   const buf = db.settings.bufferHours * 3600e3;
   t.Bookings = []; t.Booking_Items = []; t.Payments = []; t.Booking_Events = []; t.Returns = []; t.Return_Items = [];
   db.bookings.forEach(b => {
     const c = db.customers.find(x => x.id === b.customerId) || {};
-    t.Bookings.push({ booking_no: b.no, customer_id: b.customerId, customer_name: c.name || '', pickup_at: iso(b.pickupAt), event_date: iso(b.eventDate), return_by: iso(b.returnBy), rent_gross: b.rentGross, extra_days: b.extraDays || 0, discount: b.discount, voucher_code: b.voucher || '', deposit_due: b.depositDue, status: b.status, picked_at: iso(b.pickedAt), received_at: iso(b.receivedAt), closed_at: iso(b.closedAt), cancel_reason: b.cancelReason || '', late_flag_amount: b.lateFlag ? b.lateFlag.amount : '', late_flag_at: b.lateFlag ? iso(b.lateFlag.at) : '', notes: b.notes || '', created_by: b.createdBy, created_at: iso(b.createdAt) });
+    t.Bookings.push({ booking_no: b.no, customer_id: b.customerId, customer_name: c.name || '', pickup_at: iso(b.pickupAt), event_date: iso(b.eventDate), return_by: iso(b.returnBy), rent_gross: b.rentGross, extra_days: b.extraDays || 0, discount: b.discount, voucher_code: b.voucher || '', deposit_due: b.depositDue, status: b.status, picked_at: iso(b.pickedAt), received_at: iso(b.receivedAt), closed_at: iso(b.closedAt), cancel_reason: b.cancelReason || '', late_flag_amount: b.lateFlag ? b.lateFlag.amount : '', late_flag_at: b.lateFlag ? iso(b.lateFlag.at) : '', notes: b.notes || '', created_by: b.createdBy, created_at: iso(b.createdAt), ...bookingMoneyCols(b) });
     b.lines.forEach(l => { const p = l.pkg != null ? b.pkgs[l.pkg] : null; t.Booking_Items.push({ line_id: b.no + '|' + l.code, booking_no: b.no, item_code: l.code, package_no: l.pkg != null ? l.pkg : '', package_id: p ? p.key : '', package_name: p ? p.name : '', package_price: p ? p.price : '', list_price: l.list, allocated_price: l.alloc, deposit: l.deposit, blocked_from: iso(b.pickupAt), blocked_until: iso(new Date(b.returnBy.getTime() + buf)) }); });
     b.payments.forEach(p => { if (!p.id) p.id = uid('P-'); t.Payments.push({ payment_id: p.id, booking_no: b.no, kind: p.kind, amount: p.amount, mode: p.mode, at: iso(p.at), recorded_by: p.by }); });
     b.events.forEach(e => { if (!e.id) e.id = uid('E-'); t.Booking_Events.push({ event_id: e.id, booking_no: b.no, at: iso(e.at), by: e.by, text: e.text }); });
@@ -3031,13 +3036,14 @@ function toTables(db) {
 function fromTables(t) {
   const def = seedData();
   const db = { settings: { ...def.settings }, collections: [], packages: [], items: [], customers: [], vouchers: [], users: [], sales: [], photos: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1000 } };
+  db.emails = (t.Email_Log || []).map(r => ({ id: r.email_id, key: r.dedup_key, template: r.template, booking: r.booking_no || '', sale: r.sale_id || '', customer: r.customer_id || '', to: r.to || '', subject: r.subject || '', status: r.status || 'pending', at: pd(r.created_at), sentAt: pd(r.sent_at), attempts: num(r.attempts), error: r.error || '' })).sort((a, b) => b.at - a.at);
   db.photos = (t.Item_Photos || []).map(photoFromRow).filter(p => p.url).sort((a, b) => a.at - b.at);
   (t.Settings || []).forEach(r => { try { db.settings[r.key] = JSON.parse(String(r.value)); } catch (e) { db.settings[r.key] = r.value; } });
   db.collections = (t.Collections || []).length ? t.Collections.map(r => ({ id: r.collection_id, name: r.name, status: r.status, desc: r.description })) : def.collections;
   db.packages = (t.Packages || []).length ? t.Packages.map(r => ({ key: r.package_id, name: r.name, price: num(r.price), desc: r.description, slots: String(r.slots).split(',').map(s => s.trim()).filter(Boolean), salon: yes(r.includes_salon_offer) })) : def.packages;
   const hist = {}; (t.Item_History || []).forEach(r => (hist[r.item_code] = hist[r.item_code] || []).push({ id: r.history_id, at: pd(r.at), by: r.by, text: r.event }));
   db.items = (t.Items || []).map(r => ({ code: r.item_code, type: r.type_code, collection: r.collection_id || 'garba', colour: r.colour, hex: /^#[0-9a-f]{6}$/i.test(r.colour_hex) ? r.colour_hex : (COLOURS[r.colour] || '#b04a8a'), style: r.design_style, size: String(r.size), name: r.name, rent: num(r.rent_price), sale: num(r.sale_price), deposit: num(r.security_deposit), cost: num(r.purchase_cost), mode: r.mode || 'rent', condition: r.condition || 'Good', status: r.physical_status || 'in', notes: r.notes || '', prev: { rentals: num(r.prev_rentals), revenue: num(r.prev_revenue) }, repairCost: num(r.repair_cost), addedOn: String(r.added_on || ''), log: (hist[r.item_code] || []).sort((a, b) => a.at - b.at) }));
-  db.customers = (t.Customers || []).map(r => ({ id: r.customer_id, name: r.name, mobile: String(r.mobile).replace(/\D/g, ''), whatsapp: String(r.whatsapp || r.mobile).replace(/\D/g, ''), email: r.email || '', address: r.address || '', since: r.customer_since || '', salonClient: yes(r.omg_salon_client), notes: r.notes || '', idType: r.id_type || '', idLast4: r.id_last4 === '' || r.id_last4 == null ? '' : String(r.id_last4).replace(/\D/g, '').padStart(4, '0') }));
+  db.customers = (t.Customers || []).map(r => ({ id: r.customer_id, name: r.name, mobile: String(r.mobile).replace(/\D/g, ''), whatsapp: String(r.whatsapp || r.mobile).replace(/\D/g, ''), email: r.email || '', address: r.address || '', since: r.customer_since || '', salonClient: yes(r.omg_salon_client), notes: r.notes || '', prefs: { email: String(r.email_opt).toLowerCase() !== 'no', whatsapp: String(r.whatsapp_opt).toLowerCase() !== 'no', sms: String(r.sms_opt).toLowerCase() !== 'no', marketing: String(r.marketing_opt).toLowerCase() === 'yes' }, idType: r.id_type || '', idLast4: r.id_last4 === '' || r.id_last4 == null ? '' : String(r.id_last4).replace(/\D/g, '').padStart(4, '0') }));
   db.vouchers = (t.Vouchers || []).map(r => ({ code: r.code, desc: r.description, issuer: r.issuer || 'OMG Rental', type: r.type, value: num(r.value), maxOff: num(r.max_discount), min: num(r.min_amount), from: pd(r.valid_from), to: pd(r.valid_to), limit: num(r.usage_limit), used: num(r.used), perCustomer: num(r.per_customer), collection: r.collection || 'all', appliesTo: String(r.applies_to).split(',').map(s => s.trim()).filter(Boolean), status: r.status || 'active' }));
   db.users = (t.Users || []).map(r => ({ id: r.user_id, name: r.name, role: r.role, login: r.login, twofa: false, lastActive: '', active: String(r.active).toLowerCase() !== 'no' }));
   db.sales = (t.Sales || []).map(r => ({ id: r.sale_id, code: r.item_code, customerId: r.customer_id || null, walkIn: r.walk_in || null, list: num(r.list_price), discount: num(r.discount), voucher: r.voucher_code || null, price: num(r.price), mode: r.mode, at: pd(r.at), by: r.sold_by, voided: yes(r.voided) }));
@@ -3219,7 +3225,7 @@ function buildStarterTables() {
     const map = { G021: 'G001', C043: 'C001', D015: 'D001', J027: 'J001', G014: 'G002' };
     const today0 = new Date();
     const items = Object.keys(map).map(c => ({ ...base.items.find(x => x.code === c), code: map[c], prev: { rentals: 0, revenue: 0 }, repairCost: 0, status: 'in', log: [], addedOn: fDateS(today0) + ' ' + today0.getFullYear() }));
-    DB = { ...base, items, customers: base.customers.slice(0, 5), vouchers: base.vouchers.filter(v => v.code !== 'EARLYBIRD'), sales: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1005 } };
+    DB = { ...base, items, customers: base.customers.slice(0, 5).map(c => ({ ...c, email: '' })), vouchers: base.vouchers.filter(v => v.code !== 'EARLYBIRD'), sales: [], bookings: [], audit: [], seq: { booking: 100, sale: 500, customer: 1005 } };
     DB.imap = Object.fromEntries(items.map(i => [i.code, i]));
     NOW = new Date();
     const today = sod(NOW), by = (CUR && CUR.name) || 'Shop Owner';
@@ -3458,6 +3464,136 @@ function pubItem(code) {
 function pubShare(code) {
   const it = PUB.items.find(i => i.code === code); if (!it) return;
   navigator.share({ title: it.name, text: `${it.name} (${it.code}) at ${PUB.shop.name || 'OMG Rental'}`, url: tagText(code) }).catch(() => { });
+}
+
+/* ---------- Email & reminders (sent by the Google Apps Script; the app shows status and settings) ---------- */
+function bookingMoneyCols(b) {
+  const m = money(b), last = b.payments.filter(p => p.kind === 'rent' || p.kind === 'deposit').slice(-1)[0];
+  return { rent_net: m.rentNet, deposit_paid: m.depPaid, total_paid: m.rentPaid + m.depPaid, balance_due: m.outstanding, payment_mode: last ? last.mode : '' };
+}
+const prefYN = (c, k) => { const p = c.prefs || {}; return k === 'marketing' ? (p.marketing ? 'yes' : 'no') : (p[k] === false ? 'no' : 'yes'); };
+const EMAIL_STATUS = { sent: ['st-available', 'Sent'], pending: ['st-reserved', 'Pending'], failed: ['st-lost', 'Failed'], skipped: ['st-repair', 'Skipped'], bounced: ['st-lost', 'Bounced'], delivered: ['st-available', 'Delivered'] };
+const emailPill = e => { const [c, l] = EMAIL_STATUS[e.status] || ['', e.status]; return `<span class="pill ${c}" title="${esc(e.error || '')}">${l}</span>`; };
+const EMS = { st: null, loading: false, err: '', filter: 'all' };
+const EMAIL_TIMES = [['pickupTomorrowTime', 'Pickup reminder (day before) at', '18:00'], ['pickupTodayTime', 'Pickup day reminder at', '09:00'], ['paymentDueTime', 'Balance reminder (day before pickup) at', '11:00'], ['returnTomorrowTime', 'Return reminder (day before) at', '18:00'], ['returnTodayTime', 'Return due today at', '08:00'], ['overdue1Time', 'Overdue — 1st reminder at', '12:15'], ['overdue2Time', 'Overdue — 2nd reminder at', '15:00'], ['overdue3Time', 'Overdue — final reminder at', '19:00'], ['staffDigestTime', 'Daily staff summary at', '08:30']];
+const EMAIL_FIELDS = [['senderName', 'Sender name', 'OMG Rental', 'text'], ['senderEmail', 'Sender email (your business Gmail)', 'e.g. omgrental@gmail.com', 'email'], ['replyTo', 'Reply-to email', 'Where customer replies go', 'email'], ['staffEmail', 'Staff email (daily summary)', 'Owner / manager email', 'email'], ['businessPhone', 'Business phone', '7610544284', 'tel'], ['businessAddress', 'Business address', 'Shop address, Indore', 'text'], ['mapsLink', 'Google Maps link (Directions button)', 'https://maps.app.goo.gl/…', 'url'], ['reviewLink', 'Google review link', 'https://g.page/r/…/review', 'url'], ['feedbackEmail', 'Feedback email', 'Where "Send feedback" goes', 'email'], ['logoUrl', 'Logo image link', 'https://omgrental.netlify.app/omg-logo.jpg', 'url']];
+const emS = () => S().email || {};
+const emTpl = () => S().emailTemplates || {};
+function setEmailSetting(k, v) {
+  const cur = { ...emS() }, old = cur[k];
+  if (typeof v === 'string') v = v.trim();
+  if (old === v) return;
+  cur[k] = v; S().email = cur; audit('Email setting changed', k, String(v)); render(); toast('Saved', 'good');
+}
+function setTplEnabled(k, on) { const t = { ...emTpl() }; t[k] = { ...(t[k] || {}), enabled: on, updated: new Date().toISOString() }; S().emailTemplates = t; audit(on ? 'Email template on' : 'Email template off', k); render(); }
+async function loadEmailStatus(force) {
+  if (!LIVE || EMS.loading || (EMS.st && !force)) return;
+  EMS.loading = true;
+  try { const r = await api('emailStatus'); EMS.st = r.ok ? r : null; EMS.err = r.ok ? '' : r.error || 'Could not check'; }
+  catch (e) { EMS.err = 'No internet'; }
+  EMS.loading = false; if (/^#\/settings\/email/.test(location.hash)) render();
+}
+function tplInfo(k) { const st = EMS.st && EMS.st.templates && EMS.st.templates[k]; return st || null; }
+function tplOn(k) { const o = emTpl()[k], t = tplInfo(k); return o && o.enabled != null ? !!o.enabled : !(t && t.off); }
+function emailSettingsView() {
+  if (!LIVE) return `<div class="banner info">${ic('alert')} <span>Emails are sent by your Google Sheet in live mode. Connect the sheet to use this.</span></div>`;
+  loadEmailStatus();
+  const st = EMS.st, e = emS(), val = (k, d) => e[k] != null && e[k] !== '' ? e[k] : d;
+  const kinds = { event: 'When it happens', auto: 'Timed', staff: 'To staff', future: 'Future' };
+  const statusCard = !st ? `<div class="card pad">${EMS.err ? `<div class="banner danger">${ic('alert')} <span>${esc(EMS.err)}</span></div>` : '<div class="muted">Checking email status…</div>'}</div>`
+    : `<div class="card pad stack"><div class="row between wrap"><h3>Sending</h3>${st.needsSetup ? '<span class="pill st-lost">Not switched on</span>' : st.automation ? '<span class="pill st-available">Automatic reminders on</span>' : '<span class="pill st-repair">Reminders off</span>'}</div>
+      ${st.needsSetup ? `<div class="banner warn">${ic('alert')}<div><b>One-time setup:</b> open the sheet → Extensions → Apps Script → choose <span class="mono">setupEmail</span> → Run → Allow. Then Deploy → Manage deployments → ✏️ → New version → Deploy.</div></div>` : ''}
+      ${st.sender ? `<div class="line"><span class="muted">Google account</span><b>${esc(st.sender)}</b></div>` : ''}
+      <div class="line"><span class="muted">Sends as</span><b>${esc(val('senderEmail', st.sender || '—'))}</b></div>
+      ${e.senderEmail && st.sender && e.senderEmail.toLowerCase() !== st.sender.toLowerCase() && !(st.aliases || []).map(a => a.toLowerCase()).includes(e.senderEmail.toLowerCase()) ? `<div class="banner danger" style="font-weight:500">${ic('alert', 18)}<div><b>${esc(e.senderEmail)}</b> is not set up yet. In Gmail of <b>${esc(st.sender)}</b>: Settings → See all settings → Accounts → <b>Send mail as</b> → Add another email address → SMTP server <span class="mono">smtp.gmail.com</span>, port <span class="mono">587</span>, username = your business email, password = its <b>App Password</b>, TLS → then confirm the code sent to your business inbox.</div></div>` : ''}
+      ${st.quota != null ? `<div class="line"><span class="muted">Emails left today (Gmail limit)</span><b>${st.quota}</b></div>` : ''}
+      <div class="line"><span class="muted">Last automatic check</span><b>${st.lastRun ? fDT(new Date(st.lastRun)) : 'never'}</b></div>
+      <div class="row wrap" style="gap:8px"><button class="btn" onclick="emailRunNow()">${ic('refresh', 16)} Send due emails now</button><button class="btn" onclick="EMS.st=null;loadEmailStatus(true)">Check again</button></div>
+      <div class="hr"></div>
+      <div class="lbl">Send a test email</div>
+      <div class="row wrap" style="gap:8px"><input class="input grow" id="emTo" type="email" placeholder="your@email.com" style="min-width:200px" value="${esc(e.lastTestTo || '')}"><select class="input" id="emTpl" style="width:auto">${Object.entries(st.templates).map(([k, t]) => `<option value="${k}">${esc(t.name)}</option>`).join('')}</select><button class="btn btn-primary" onclick="emailTestSend()">Send test</button></div></div>`;
+  const senderCard = `<div class="card pad stack"><div class="row between"><h3>Sender & business details</h3><label class="row" style="gap:8px"><input type="checkbox" ${val('enabled', true) !== false ? 'checked' : ''} onchange="setEmailSetting('enabled',this.checked)"> <b>Emails on</b></label></div>
+    <div class="grid g2">${EMAIL_FIELDS.map(([k, l, ph, type]) => `<div class="field"><label>${l}</label><input class="input" type="${type}" value="${esc(e[k] || '')}" placeholder="${esc(ph)}" onchange="setEmailSetting('${k}',this.value)"></div>`).join('')}</div>
+    <div class="hint">The Gmail App Password is never typed here. It goes into Gmail's own "Send mail as" setup (see Sending), so it is never stored in the app, the sheet or GitHub.</div></div>`;
+  const timesCard = `<div class="card pad stack"><h3>Reminder timing <span class="muted small">(India time)</span></h3>
+    <div class="grid g2">${EMAIL_TIMES.map(([k, l, d]) => `<div class="field"><label>${l}</label><input class="input" type="time" value="${esc(val(k, d))}" onchange="setEmailSetting('${k}',this.value)"></div>`).join('')}
+      <div class="field"><label>Review request — hours after return</label><input class="input" type="number" min="1" value="${esc(val('reviewDelayHours', 24))}" onchange="setEmailSetting('reviewDelayHours',+this.value)"></div></div>
+    <div class="hint">Overdue emails start only after the return deadline + grace period (${S().graceMin || 0} min, set in Late fees). Only the latest overdue level is sent, so a customer never gets a burst of emails. Each reminder goes once per booking.</div></div>`;
+  const tplRows = st ? Object.entries(st.templates).map(([k, t]) => { const o = emTpl()[k] || {}, on = tplOn(k); return `<tr><td><b>${esc(t.name)}</b>${t.pdf ? ' <span class="pill" style="height:20px">PDF receipt</span>' : ''}<div class="tiny muted">${esc(o.subject || t.subject)}</div></td><td>${esc(t.trigger)}<div class="tiny muted">${kinds[t.kind] || ''}</div></td>
+      <td><label class="row" style="gap:6px"><input type="checkbox" ${on ? 'checked' : ''} ${t.kind === 'future' ? 'disabled' : ''} onchange="setTplEnabled('${k}',this.checked)"> ${on ? 'Active' : 'Off'}</label></td><td>${o.updated ? fDateS(new Date(o.updated)) : 'Default'}</td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn btn-sm" onclick="tplEditModal('${k}')">${ic('edit', 14)} Edit</button><button class="btn btn-sm" onclick="tplPreview('${k}')">${ic('eye', 14)} Preview</button></div></td></tr>`; }).join('') : '';
+  const tplCard = `<div class="card"><div class="card-h"><h3 class="grow">Email templates</h3><span class="tiny muted">OMG Rental design · logo · ${esc(val('businessPhone', '7610544284'))}</span></div>${st ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Template</th><th>Sent when</th><th>Status</th><th>Last updated</th><th></th></tr></thead><tbody>${tplRows}</tbody></table></div>` : '<div class="pad muted">Loading…</div>'}</div>`;
+  const list = (DB.emails || []).filter(x => EMS.filter === 'all' || x.status === EMS.filter).slice(0, 150);
+  const cnt = k => (DB.emails || []).filter(x => k === 'all' || x.status === k).length;
+  const logCard = `<div class="card"><div class="card-h"><h3 class="grow">Email activity</h3><button class="btn btn-sm" onclick="reloadData()">${ic('refresh', 14)} Refresh</button></div>
+    <div class="pad" style="padding-bottom:0"><div class="chips scroll">${['all', 'sent', 'pending', 'failed', 'skipped'].map(k => `<button class="chip ${EMS.filter === k ? 'on' : ''}" onclick="EMS.filter='${k}';render()">${k === 'all' ? 'All' : EMAIL_STATUS[k][1]} <span class="c">${cnt(k)}</span></button>`).join('')}</div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Customer</th><th>Booking</th><th>Email</th><th>Status</th></tr></thead><tbody>${list.map(x => { const c = x.customer ? cust(x.customer) : null, t = tplInfo(x.template); return `<tr><td>${fDT(x.sentAt || x.at)}</td><td>${c ? `<a href="#/customer/${c.id}">${esc(c.name)}</a>` : esc(x.to || 'Staff')}</td><td>${x.booking ? `<a href="#/booking/${x.booking}">${x.booking}</a>` : esc(x.sale || '')}</td><td>${esc(t ? t.name : x.template)}<div class="tiny muted">${esc(x.to)}</div></td><td>${emailPill(x)}${x.error ? `<div class="tiny" style="color:var(--danger)">${esc(x.error)}</div>` : ''}</td></tr>`; }).join('') || `<tr><td colspan="5">${emptyState('No emails yet')}</td></tr>`}</tbody></table></div></div>`;
+  return `<div class="stack s16"><div class="grid g2">${statusCard}${senderCard}</div>${timesCard}${tplCard}${logCard}</div>`;
+}
+async function emailRunNow() { toast('Checking what is due…'); const r = await api('emailRun').catch(() => ({ ok: false, error: 'No internet' })); if (!r.ok) return toast(r.error || 'Could not run', 'bad'); await reloadData(true); toast('Done — see Email activity', 'good'); }
+async function emailTestSend() {
+  const to = $('#emTo').value.trim(), tpl = $('#emTpl').value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return toast('Enter a valid email', 'bad');
+  toast('Sending test email…');
+  const r = await api('emailTest', { to, template: tpl }).catch(() => ({ ok: false, error: 'No internet' }));
+  if (r.ok) { S().email = { ...emS(), lastTestTo: to }; toast('Test email sent to ' + to, 'good'); render(); } else toast(r.error || 'Could not send', 'bad');
+}
+const TPL_VARS = ['customer_name', 'booking_number', 'item_list', 'pickup_date', 'pickup_time', 'event_date', 'return_date', 'return_time', 'rental_amount', 'discount', 'deposit_amount', 'deposit_paid', 'damage_charge', 'late_fee', 'refund_amount', 'payment_amount', 'payment_method', 'balance_due', 'business_phone', 'business_address', 'reference_number'];
+function tplEditModal(k) {
+  const t = tplInfo(k); if (!t) return;
+  const o = emTpl()[k] || {};
+  openModal({ title: 'Edit email · ' + esc(t.name), wide: true, body: `<div class="stack">
+      <div class="field"><label>Subject</label><input class="input" id="te_s" value="${esc(o.subject || t.subject)}"></div>
+      <div class="field"><label>Heading</label><input class="input" id="te_h" value="${esc(o.heading || t.heading)}"></div>
+      <div class="field"><label>Message</label><textarea class="input" id="te_i" style="min-height:120px">${esc(o.intro || t.intro)}</textarea></div>
+      <div class="hint">Use variables in double curly brackets — they are filled for every customer:<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${TPL_VARS.map(v => `<span class="code" style="cursor:pointer" onclick="const i=$('#te_i');i.value+=' {{${v}}}';i.focus()">{{${v}}}</span>`).join('')}</div></div>
+      <div class="hint">Booking details, dates, items, amounts, buttons, logo and footer are added automatically.</div><div id="teOut"></div></div>`,
+    foot: `${o.subject || o.heading || o.intro ? `<button class="btn btn-lg btn-danger-soft" onclick="tplSave('${k}',true)">Reset to default</button>` : ''}<button class="btn btn-lg" onclick="tplPreview('${k}',true)">${ic('eye', 16)} Preview</button><button class="btn btn-primary btn-lg" onclick="tplSave('${k}')">Save</button>` });
+}
+function tplSave(k, reset) {
+  const t = { ...emTpl() }, cur = t[k] || {};
+  t[k] = reset ? { enabled: cur.enabled, updated: new Date().toISOString() } : { ...cur, subject: $('#te_s').value.trim(), heading: $('#te_h').value.trim(), intro: $('#te_i').value.trim(), updated: new Date().toISOString() };
+  S().emailTemplates = t; audit('Email template edited', k, reset ? 'reset to default' : t[k].subject); closeModal(); render(); toast('Template saved', 'good');
+}
+async function tplPreview(k, fromEditor) {
+  const override = fromEditor ? { subject: $('#te_s').value, heading: $('#te_h').value, intro: $('#te_i').value } : null;
+  const box = fromEditor ? $('#teOut') : null;
+  if (box) box.innerHTML = '<div class="muted small">Building preview…</div>'; else toast('Building preview…');
+  const r = await api('emailPreview', { template: k, override, email: emS() }).catch(() => ({ ok: false, error: 'No internet' }));
+  if (!r.ok) { if (box) box.innerHTML = `<div class="err">${esc(r.error)}</div>`; else toast(r.error, 'bad'); return; }
+  const frame = `<div class="small" style="margin:6px 0"><b>Subject:</b> ${esc(r.subject)}</div><iframe sandbox="" title="Email preview" style="width:100%;height:70vh;border:1px solid var(--line);border-radius:12px;background:#fff" srcdoc="${esc(r.html)}"></iframe>`;
+  if (box) box.innerHTML = frame; else openModal({ title: 'Preview · ' + esc((tplInfo(k) || {}).name || k), wide: true, body: frame, foot: `<button class="btn btn-primary btn-lg" onclick="closeModal()">Close</button>` });
+}
+/* customer page: Emails & preferences tab */
+function custEmailTab(c) {
+  const p = c.prefs || {}, rows = (DB.emails || []).filter(x => x.customer === c.id);
+  const sw = (k, l, sub) => `<label class="lrow" style="cursor:pointer"><input type="checkbox" ${(k === 'marketing' ? p.marketing : p[k] !== false) ? 'checked' : ''} onchange="setCustPref('${c.id}','${k}',this.checked)" style="width:22px;height:22px"><div class="grow"><b>${l}</b><div class="tiny muted">${sub}</div></div></label>`;
+  return `<div class="grid g2"><div class="card pad stack"><h3>Email address</h3><div class="row" style="gap:8px"><input class="input grow" id="cemail" type="email" value="${esc(c.email || '')}" placeholder="customer@email.com"><button class="btn btn-primary" onclick="saveCustEmail('${c.id}')">Save</button></div>
+      <div class="hint">${c.email ? 'Booking confirmations, receipts and reminders go to this address.' : 'Add an email to send receipts and reminders automatically.'}</div>
+      <h3 style="margin-top:8px">Preferences</h3><div class="list">${sw('email', 'Email updates', 'Bookings, receipts, pickup & return reminders')}${sw('whatsapp', 'WhatsApp', 'Reminders on WhatsApp (when switched on)')}${sw('sms', 'SMS', 'Text message reminders (when switched on)')}${sw('marketing', 'Offers & new collections', 'Only with the customer’s permission')}</div></div>
+    <div class="card"><div class="card-h"><h3 class="grow">Emails sent</h3><span class="badge">${rows.length}</span></div><div class="list mini-list">${rows.slice(0, 30).map(x => `<div class="lrow"><div class="grow small"><b>${esc((tplInfo(x.template) || {}).name || x.template.replace(/_/g, ' '))}</b>${x.booking ? ' · ' + x.booking : ''}<div class="tiny muted">${fDT(x.sentAt || x.at)}${x.error ? ' · ' + esc(x.error) : ''}</div></div>${emailPill(x)}</div>`).join('') || emptyState('No emails yet')}</div></div></div>`;
+}
+function setCustPref(id, k, on) { const c = cust(id); c.prefs = { ...(c.prefs || {}), [k]: on }; audit('Customer preference', id, k + ' ' + (on ? 'on' : 'off')); render(); }
+function saveCustEmail(id) {
+  const v = $('#cemail').value.trim();
+  if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return toast('That email does not look right', 'bad');
+  const c = cust(id); c.email = v; audit('Customer email changed', id); render(); toast('Email saved', 'good');
+}
+/* booking page: Emails card */
+function bookingEmailCard(b) {
+  const c = cust(b.customerId), rows = (DB.emails || []).filter(x => x.booking === b.no);
+  const can2 = LIVE && CUR.role !== 'staff';
+  const btn = (tpl, l) => `<button class="btn btn-sm" onclick="resendEmail('${tpl}','${b.no}')">${l}</button>`;
+  return `<div class="card"><div class="card-h">${ic('cloud', 20)}<h3 class="grow">Emails</h3><span class="badge">${rows.length}</span></div>
+    ${!c.email ? `<div class="pad small"><span class="muted">No email for this customer.</span> <a href="#/customer/${c.id}" onclick="CTAB.t='messages'">Add email</a></div>` : ''}
+    <div class="list mini-list">${rows.map(x => `<div class="lrow"><div class="grow small"><b>${esc((tplInfo(x.template) || {}).name || x.template.replace(/_/g, ' '))}</b><div class="tiny muted">${fDT(x.sentAt || x.at)}${x.to ? ' · ' + esc(x.to) : ''}${x.error ? ' · ' + esc(x.error) : ''}</div></div>${emailPill(x)}</div>`).join('') || (c.email ? '<div class="empty small">No emails yet</div>' : '')}</div>
+    ${can2 && c.email ? `<div class="pad row wrap" style="gap:6px;padding-top:0">${btn('booking_confirmation', 'Resend confirmation + receipt')}${b.status === 'closed' ? btn('settlement', 'Send settlement') : ''}${b.status === 'picked' ? btn('return_today', 'Send return reminder') : ''}</div>` : ''}</div>`;
+}
+async function resendEmail(tpl, no) {
+  toast('Sending…');
+  const r = await api('emailSend', { template: tpl, booking_no: no }).catch(() => ({ ok: false, error: 'No internet' }));
+  if (r.ok) { toast('Email sent to ' + r.to, 'good'); } else toast(r.error || 'Could not send', 'bad');
+  await reloadData(true);
 }
 
 /* =====================================================================
