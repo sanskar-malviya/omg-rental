@@ -84,6 +84,7 @@ function doPost(e) {
         var lg = login(req.user_id, req.pin);
         if (lg.ok && req.withData) { lg.tables = loadAll(); lg.photosEnabled = photosEnabled(); lg.serverTime = new Date().toISOString(); }   // saves a second round trip
         return json(lg);
+      case 'catalog': return json(catalog());   // public, no login: QR tags open this
       case 'logout': CacheService.getScriptCache().remove('t_' + req.token); return json({ ok: true });
       case 'load': var u = auth(req.token); return json({ ok: true, user: u, tables: loadAll(!!req.fresh), photosEnabled: photosEnabled(), serverTime: new Date().toISOString() });
       case 'commit': return json(commit(auth(req.token), req.changes || {}, req.newBookings || []));
@@ -280,6 +281,39 @@ function rowsToObjects(v) {
     out.push(o);
   }
   return out;
+}
+
+/* ============ PUBLIC CATALOGUE (no login) ============
+   Only what a customer may see: item looks, item photos and booked date ranges.
+   Never prices, costs, notes, customers, bookings, ID proofs or settings like PINs. */
+var PUBLIC_SETTINGS = ['shopName', 'city', 'pickupStart', 'pickupEnd', 'returnDeadline', 'bufferHours', 'festivalName', 'festivalStart', 'festivalNights'];
+function catalog() {
+  var t = loadAll(), now = new Date(), status = {}, colName = {}, codes = {};
+  t.Bookings.forEach(function (b) { status[b.booking_no] = b.status; });
+  t.Collections.forEach(function (c) { colName[c.collection_id] = c.name; });
+  var items = t.Items.filter(function (i) { return i.item_code && ['sold', 'lost'].indexOf(String(i.physical_status)) < 0; }).map(function (i) {
+    codes[i.item_code] = 1;
+    return { code: String(i.item_code), type: String(i.type_code), name: String(i.name), colour: String(i.colour), hex: String(i.colour_hex), size: String(i.size), style: String(i.design_style), mode: String(i.mode || 'rent'), status: String(i.physical_status || 'in'), collection: colName[i.collection_id] || '' };
+  });
+  var photos = {};
+  t.Item_Photos.forEach(function (p) {
+    if (p.kind === 'item' && String(p.active).toLowerCase() !== 'no' && codes[p.item_code] && p.url) (photos[p.item_code] = photos[p.item_code] || []).push(String(p.url));
+  });
+  var blocks = {}, yesterday = now.getTime() - 864e5;
+  t.Booking_Items.forEach(function (l) {
+    var st = status[l.booking_no];
+    if ((st !== 'reserved' && st !== 'picked') || !codes[l.item_code]) return;
+    var f = new Date(l.blocked_from), u = new Date(l.blocked_until);
+    if (st === 'picked' && now > u) u = now;                      // still out (overdue)
+    if (u.getTime() < yesterday) return;
+    (blocks[l.item_code] = blocks[l.item_code] || []).push([f.toISOString(), u.toISOString()]);
+  });
+  var settings = {};
+  t.Settings.forEach(function (r) {
+    if (PUBLIC_SETTINGS.indexOf(r.key) < 0) return;
+    try { settings[r.key] = JSON.parse(String(r.value)); } catch (x) { settings[r.key] = r.value; }
+  });
+  return { ok: true, shop: { name: settings.shopName || 'OMG Rental', city: settings.city || '' }, settings: settings, items: items, photos: photos, blocks: blocks, serverTime: now.toISOString() };
 }
 
 /* ============ WRITE (inside a lock, so two tablets can't clash) ============ */

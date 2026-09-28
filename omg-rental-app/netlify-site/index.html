@@ -505,6 +505,34 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 }
 body.login-mode .side,body.login-mode .top,body.login-mode .bottomnav,body.login-mode #tourRoot{display:none}
 body.login-mode .app{grid-template-columns:1fr}
+/* Public catalogue (QR scans, no login) */
+body.public-mode .page{max-width:1100px;margin:0 auto}
+.ptop{display:flex;align-items:center;gap:10px;padding:4px 0 16px;flex-wrap:wrap}
+.ptop a{color:inherit;text-decoration:none}
+.pitem{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.pitem{grid-template-columns:minmax(0,1fr)}}
+.pgal .main{aspect-ratio:3/4;border-radius:var(--r-lg);overflow:hidden;display:grid;place-items:center}
+.pgal .main img{width:100%;height:100%;object-fit:cover;display:block}
+.pgal .ths{display:flex;gap:8px;margin-top:8px;overflow-x:auto}
+.pgal .ths img{width:64px;height:64px;flex:none;object-fit:cover;border-radius:10px;border:2px solid transparent;cursor:pointer}
+.pgal .ths img.on{border-color:var(--brand)}
+.pcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.pcal .h{font-size:11px;color:var(--muted);font-weight:700;padding:4px 0}
+.pcal .d{padding:9px 0;border-radius:8px;font-weight:700;font-size:14px;position:relative}
+.pcal .d.free{background:var(--good-soft);color:var(--good)}
+.pcal .d.busy{background:var(--danger-soft);color:var(--danger);text-decoration:line-through}
+.pcal .d.past{color:var(--muted);opacity:.45}
+.pcal .d.fest::after{content:'';position:absolute;top:3px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--brand)}
+.plegend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:10px}
+.plegend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+@media (max-width:420px){.pcards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+.pcard{display:block;background:var(--surface);border-radius:var(--r);overflow:hidden;text-decoration:none;color:inherit;border:1px solid var(--line);box-shadow:var(--sh-1)}
+.pcard .im{aspect-ratio:1;display:grid;place-items:center;overflow:hidden;position:relative}
+.pcard .im img{width:100%;height:100%;object-fit:cover;display:block}
+.pcard .im .pill{position:absolute;top:8px;left:8px}
+.pcard .b{padding:10px 12px}
+.pcard .nm{font-weight:700;font-size:14px;line-height:1.3}
 .login-card{max-width:440px;margin:5vh auto}
 .icard .img .pill{z-index:1}
 .icard .img>img,.thumb>img{width:100%;height:100%;object-fit:cover;display:block}
@@ -3034,7 +3062,7 @@ let LOGIN = { users: null, sel: null, pin: '', err: '', busy: false };
 function logoutLocal() { TOKEN = null; LOADED = false; try { localStorage.removeItem('omg_session'); } catch (e) { } document.body.classList.add('login-mode'); LOGIN.pin = ''; renderLogin(); }
 async function logout() { if (diffDB().n && !confirm('Some changes are not saved yet. Log out anyway?')) return; try { await api('logout'); } catch (e) { } logoutLocal(); }
 async function renderLogin() {
-  document.body.classList.add('login-mode');
+  document.body.classList.add('login-mode'); document.body.classList.remove('public-mode');
   const P = $('#page');
   if (!LOGIN.users) {
     P.innerHTML = `<div class="login-card card pad" style="text-align:center"><div class="logo" style="margin:0 auto 12px;width:56px;height:56px">OMG</div><h1 class="pg">OMG Rental</h1><p class="muted">Connecting to your Google Sheet…</p></div>`;
@@ -3048,7 +3076,7 @@ async function renderLogin() {
       : `<div class="row"><span class="avatar">${initials(u.name)}</span><b class="grow">${esc(u.name)}</b><button class="btn btn-sm" onclick="LOGIN.sel=null;LOGIN.pin='';renderLogin()">Change</button></div>
       <div class="input big mono" style="display:flex;align-items:center;justify-content:center;letter-spacing:10px">${LOGIN.pin.replace(/./g, '●') || '<span class="muted" style="letter-spacing:0;font-size:15px;font-weight:600">Enter PIN</span>'}</div>
       <div class="grid g3" style="gap:8px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '✓'].map(k => `<button class="btn btn-xl ${k === '✓' ? 'btn-primary' : ''}" ${LOGIN.busy ? 'disabled' : ''} onclick="pinKey('${k}')">${k}</button>`).join('')}</div>`}
-    <button class="btn btn-ghost btn-sm" onclick="connectModal()">${ic('gear', 15)} Connection settings</button></div>`;
+    <button class="btn btn-lg" onclick="go('#/catalog')">${ic('hanger', 18)} Browse catalogue</button><button class="btn btn-ghost btn-sm" onclick="connectModal()">${ic('gear', 15)} Connection settings</button></div>`;
 }
 function pinKey(k) {
   if (k === '⌫') LOGIN.pin = LOGIN.pin.slice(0, -1);
@@ -3074,7 +3102,7 @@ async function enterLive(pre) {
   if (!r.ok) { if (r.code !== 'auth') { LOGIN.err = r.error; logoutLocal(); } return; }
   DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled; LOADED = true;
   CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };
-  NOW = new Date(); document.body.classList.remove('login-mode'); TOUR.open = false;
+  NOW = new Date(); document.body.classList.remove('login-mode', 'public-mode'); TOUR.open = false;
   audit('Signed in', 'Session', navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Tablet / desktop');
   if (!location.hash || location.hash === '#/') history.replaceState(null, '', '#/dashboard');
   render(); setSync('saved');
@@ -3270,6 +3298,103 @@ function hidePhoto(id) {
   });
 }
 
+/* ---------- Public catalogue — no login needed. QR tags (#/item/CODE) and #/catalog open here.
+   Shows photos, details and availability only: no prices, no customers, no bookings. ---------- */
+let PUB = null;
+const PUBQ = { type: 'all', q: '', date: '', month: null, ph: 0, code: null };
+const isPublicRoute = () => /^#\/(item\/|catalog)/.test(location.hash);
+async function renderPublic() {
+  document.body.classList.add('login-mode', 'public-mode');
+  const P = $('#page');
+  if (!PUB || Date.now() - PUB.loadedAt > 120000) {
+    if (!PUB) P.innerHTML = `<div class="login-card card pad" style="text-align:center"><div class="logo" style="margin:0 auto 12px;width:56px;height:56px">OMG</div><h1 class="pg">OMG Rental</h1><p class="muted">Loading the catalogue…</p></div>`;
+    try {
+      const r = await api('catalog'); if (!r.ok) throw new Error(r.error || 'error');
+      PUB = r; PUB.loadedAt = Date.now(); Object.assign(DB.settings, r.settings || {});
+    } catch (e) {
+      if (!PUB) { P.innerHTML = `<div class="login-card card pad stack" style="text-align:center"><div class="logo" style="margin:0 auto;width:56px;height:56px">OMG</div><h1 class="pg">OMG Rental</h1><div class="banner danger">${ic('alert')} <span>${/Unknown action/.test(e.message) ? 'The catalogue is not switched on yet.' : 'Could not load the catalogue. Check the internet connection.'}</span></div><button class="btn btn-lg" onclick="renderPublic()">Try again</button><button class="btn btn-ghost btn-sm" onclick="go('#/dashboard')">Staff login</button></div>`; return; }
+    }
+  }
+  if (TOKEN || !isPublicRoute()) return;   // navigated away while loading
+  const m = location.hash.match(/^#\/item\/([A-Za-z0-9-]+)/);
+  P.innerHTML = pubTop() + (m ? pubItem(m[1].toUpperCase()) : pubList());
+}
+const pubHex = it => /^#[0-9a-f]{6}$/i.test(it.hex) ? it.hex : (COLOURS[it.colour] || '#b04a8a');
+const pubType = it => (TYPES[it.type] || { name: it.type }).name;
+const PUB_MODE = { rent: 'On rent', both: 'On rent · also for sale', sale: 'For sale' };
+function pubTop() {
+  return `<div class="ptop"><a href="#/catalog" class="row" style="gap:10px"><div class="logo" style="width:42px;height:42px;font-size:13px">OMG</div><div><b>${esc(PUB.shop.name || 'OMG Rental')}</b><div class="tiny muted">${esc(PUB.shop.city || '')}${PUB.shop.city ? ' · ' : ''}Catalogue</div></div></a><span class="grow"></span><button class="btn btn-sm" onclick="go('#/dashboard')">${ic('lock', 16)} Staff login</button></div>`;
+}
+/* Can this piece be rented for an event on this day? (pickup that day, return next day) */
+function pubFree(code, day) {
+  const it = PUB.items.find(i => i.code === code);
+  if (!it || it.status === 'repair' || it.mode === 'sale') return false;
+  const d = datesForEvent(day), st = d.pickupAt.getTime(), end = d.returnBy.getTime() + (+S().bufferHours || 0) * 3600e3;
+  return !(PUB.blocks[code] || []).some(([f, u]) => new Date(f).getTime() < end && st < new Date(u).getTime());
+}
+function pubCard(it) {
+  const ph = (PUB.photos[it.code] || [])[0], day = PUBQ.date ? parseIso(PUBQ.date) : null;
+  const badge = day ? (pubFree(it.code, day) ? '<span class="pill st-available">Available</span>' : '<span class="pill st-lost">Booked</span>') : '';
+  return `<a class="pcard" href="#/item/${it.code}"><div class="im" style="${tileBg(pubHex(it))}">${ph ? `<img src="${esc(ph)}" alt="" loading="lazy">` : art(it.type, pubHex(it), 110)}${badge}</div>
+    <div class="b"><div class="nm">${esc(it.name)}</div><div class="tiny muted" style="margin-top:3px"><span class="mono">${it.code}</span> · ${esc(it.size)}</div></div></a>`;
+}
+function pubList() {
+  const day = PUBQ.date ? parseIso(PUBQ.date) : null, q = PUBQ.q.trim().toLowerCase();
+  let list = PUB.items.slice();
+  const types = Object.keys(TYPES).filter(k => list.some(i => i.type === k));
+  if (PUBQ.type !== 'all') list = list.filter(i => i.type === PUBQ.type);
+  if (q) list = list.filter(i => [i.code, i.name, i.colour, i.style, i.size, pubType(i)].join(' ').toLowerCase().includes(q));
+  if (day) list = list.filter(i => pubFree(i.code, day));
+  const nights = festivalNights().filter(f => f.d >= sod(new Date()));
+  return `<div class="stack s16">
+    <div><h1 class="pg">Our collection</h1><p class="muted" style="margin:4px 0 0">Tap any piece to see photos and the dates it is free. Visit the shop to book.</p></div>
+    <div class="row wrap" style="gap:8px"><div class="input-wrap grow" style="min-width:200px"><span class="pre">${ic('search', 18)}</span><input class="input" style="padding-left:42px" placeholder="Search colour, style, code…" value="${esc(PUBQ.q)}" onchange="PUBQ.q=this.value;renderPublic()"></div>
+      <label class="row" style="gap:6px"><span class="small muted">Free on</span><input class="input" type="date" style="width:auto" value="${PUBQ.date}" onchange="PUBQ.date=this.value;renderPublic()"></label>${PUBQ.date ? `<button class="btn btn-sm" onclick="PUBQ.date='';renderPublic()">${ic('x', 14)} Clear date</button>` : ''}</div>
+    ${nights.length ? `<div class="chips scroll">${nights.map(f => { const v = isoDay(f.d); return `<button class="chip ${PUBQ.date === v ? 'on' : ''}" onclick="PUBQ.date='${v}';renderPublic()">Night ${f.n} · ${fDateS(f.d)}</button>`; }).join('')}</div>` : ''}
+    <div class="chips scroll">${[['all', 'All'], ...types.map(k => [k, TYPES[k].short])].map(([k, l]) => `<button class="chip ${PUBQ.type === k ? 'on' : ''}" onclick="PUBQ.type='${k}';renderPublic()">${l}</button>`).join('')}</div>
+    <div class="small muted">${list.length} piece${list.length === 1 ? '' : 's'}${day ? ' free for an event on ' + fDate(day) : ''}</div>
+    ${list.length ? `<div class="pcards">${list.map(pubCard).join('')}</div>` : emptyState('Nothing found', 'Try another colour, type or date.')}</div>`;
+}
+function pubCal(code) {
+  const today = sod(new Date()), cur = new Date(today.getFullYear(), today.getMonth(), 1);
+  const m0 = PUBQ.month || cur, y = m0.getFullYear(), mo = m0.getMonth(), days = new Date(y, mo + 1, 0).getDate();
+  const lead = (new Date(y, mo, 1).getDay() + 6) % 7, canPrev = m0 > cur, canNext = (y - cur.getFullYear()) * 12 + mo - cur.getMonth() < 11;
+  let cells = '';
+  for (let i = 0; i < lead; i++) cells += '<div></div>';
+  for (let d = 1; d <= days; d++) {
+    const day = new Date(y, mo, d), past = day < today, free = !past && pubFree(code, day), fest = festivalNightOf(day);
+    cells += `<div class="d ${past ? 'past' : free ? 'free' : 'busy'}${fest ? ' fest' : ''}" title="${fDate(day)}${fest ? ' · Navratri night ' + fest : ''}: ${past ? 'past' : free ? 'available' : 'booked'}">${d}</div>`;
+  }
+  return `<div class="row between" style="margin-bottom:10px"><button class="btn btn-sm" ${canPrev ? '' : 'disabled'} onclick="PUBQ.month=new Date(${y},${mo - 1},1);renderPublic()" aria-label="Previous month">${ic('left', 16)}</button>
+      <b>${m0.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</b>
+      <button class="btn btn-sm" ${canNext ? '' : 'disabled'} onclick="PUBQ.month=new Date(${y},${mo + 1},1);renderPublic()" aria-label="Next month">${ic('right', 16)}</button></div>
+    <div class="pcal">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="h">${d}</div>`).join('')}${cells}</div>
+    <div class="plegend"><span><i style="background:var(--good-soft);border:1px solid var(--good)"></i>Available</span><span><i style="background:var(--danger-soft);border:1px solid var(--danger)"></i>Booked</span>${festivalNights().length ? `<span><i style="background:var(--brand);width:7px;height:7px;border-radius:50%"></i>${esc(S().festivalName || 'Festival')} night</span>` : ''}</div>`;
+}
+function pubItem(code) {
+  const it = PUB.items.find(i => i.code === code);
+  if (!it) return `<div class="card pad stack" style="text-align:center;max-width:460px;margin:0 auto"><h3>Piece ${esc(code)} is not in the catalogue</h3><p class="muted" style="margin:0">It may have been sold or taken out of the collection.</p><a class="btn btn-primary btn-lg" href="#/catalog">See the full collection</a></div>`;
+  if (PUBQ.code !== code) { PUBQ.code = code; PUBQ.ph = 0; PUBQ.month = null; }
+  const ps = PUB.photos[code] || [], hex = pubHex(it), ph = Math.min(PUBQ.ph, Math.max(0, ps.length - 1));
+  const nights = festivalNights().filter(f => f.d >= sod(new Date()));
+  const row = (k, v) => v ? `<div class="line"><span class="muted">${k}</span><b style="text-align:right">${v}</b></div>` : '';
+  const status = it.status === 'repair' ? '<span class="pill st-repair">Not available right now</span>' : it.mode === 'sale' ? '<span class="pill">For sale</span>' : pubFree(code, defaultEvent()) ? '<span class="pill st-available">Available today</span>' : '<span class="pill st-lost">Booked today</span>';
+  return `<div class="row" style="margin-bottom:12px"><a class="btn btn-ghost btn-sm" href="#/catalog">${ic('left', 16)} Full collection</a></div>
+  <div class="pitem">
+    <div class="pgal"><div class="main" style="${tileBg(hex)}">${ps.length ? `<img src="${esc(ps[ph])}" alt="${esc(it.name)}">` : art(it.type, hex, 240)}</div>
+      ${ps.length > 1 ? `<div class="ths">${ps.map((u, i) => `<img src="${esc(u)}" alt="" class="${i === ph ? 'on' : ''}" onclick="PUBQ.ph=${i};renderPublic()">`).join('')}</div>` : ''}</div>
+    <div class="stack s16">
+      <div><div class="row wrap" style="gap:6px">${status}<span class="pill"><span class="mono">${it.code}</span></span></div>
+        <h1 class="pg" style="font-size:26px;margin-top:10px">${esc(it.name)}</h1><div class="muted small" style="margin-top:4px">${esc(pubType(it))}</div></div>
+      <div class="card pad summary"><h3 style="margin-bottom:6px">Details</h3>
+        ${row('Type', esc(pubType(it)))}${row('Colour', `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${hex};vertical-align:-1px;margin-right:6px"></span>${esc(it.colour || '')}`)}${row('Size', esc(it.size))}${row('Design', esc(it.style))}${row('Collection', esc(it.collection || ''))}${row('Available', PUB_MODE[it.mode] || '')}</div>
+      ${it.mode === 'sale' ? '' : `<div class="card pad"><h3 style="margin-bottom:4px">Availability</h3><p class="small muted" style="margin:0 0 12px">Pick up on your event day from ${fTime(atTime(new Date(), S().pickupStart))}, return the next day by ${fTime(atTime(new Date(), S().returnDeadline))}.</p>
+        ${nights.length ? `<div class="lbl">${esc(S().festivalName || 'Festival')}</div><div class="chips scroll" style="margin-bottom:14px">${nights.map(f => `<span class="chip ${pubFree(code, f.d) ? '' : 'off'}" style="${pubFree(code, f.d) ? 'background:var(--good-soft);color:var(--good)' : 'background:var(--danger-soft);color:var(--danger);text-decoration:line-through'}">Night ${f.n} · ${fDateS(f.d)}</span>`).join('')}</div>` : ''}
+        ${pubCal(code)}</div>`}
+      <div class="banner info">${ic('hanger')} <span>Like this piece? Visit <b>${esc(PUB.shop.name || 'OMG Rental')}</b>${PUB.shop.city ? ', ' + esc(PUB.shop.city) : ''} and ask for code <b class="mono">${it.code}</b>.</span></div>
+    </div></div>`;
+}
+
 /* =====================================================================
    §7 ROUTER + BOOT
    ===================================================================== */
@@ -3287,7 +3412,7 @@ const ROUTES = {
   vouchers: r => r.parts[1] === 'new' ? scrVoucherNew() : scrVouchers(), reports: r => scrReports(r), settings: r => scrSettings(r), handoff: () => scrHandoff(),
 };
 function render() {
-  if (LIVE && !TOKEN) return renderLogin();
+  if (LIVE && !TOKEN) return isPublicRoute() ? renderPublic() : renderLogin();   // QR scans without login → public catalogue
   if (LIVE && !LOADED) return;   // still loading the sheet — show nothing, save nothing
   if (LIVE) NOW = new Date();
   const r = parseRoute(); const fn = ROUTES[r.name] || ROUTES.dashboard;
@@ -3315,7 +3440,7 @@ function boot() {
   if (LIVE) {
     DB = fromTables({}); NOW = new Date(); CUR = { id: '', name: '', role: 'staff' }; TOUR.open = false; startLiveTimers();   // empty until the sheet loads — never demo data
     let sess = null; try { sess = JSON.parse(localStorage.getItem('omg_session') || 'null'); } catch (e) { }
-    if (sess && sess.token) { TOKEN = sess.token; enterLive().catch(() => { TOKEN = null; renderLogin(); }); } else renderLogin();
+    if (sess && sess.token) { TOKEN = sess.token; enterLive().catch(() => { TOKEN = null; render(); }); } else render();
     return;
   }
   DB = seedData(); DB.imap = Object.fromEntries(DB.items.map(i => [i.code, i]));

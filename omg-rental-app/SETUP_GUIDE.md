@@ -86,3 +86,9 @@ Files are stored as `items/<ITEM CODE>/…jpg`, `damage/<BOOKING NO>/<ITEM CODE>
 - The camera only works on the **https** Netlify link, not when opening the HTML file directly. If the camera was blocked: tap the 🔒 in the address bar → Permissions → Camera → Allow.
 - A USB/Bluetooth barcode scanner also works: it "types" the tag into the search box or the scan popup.
 - Scanner libraries are bundled in `netlify-site/vendor/` (jsQR, Apache-2.0; qrcode-generator, MIT; see `vendor/LICENSES.txt`).
+
+## Public catalogue (for customers, no login)
+- Anyone who scans a QR tag with their phone camera opens that piece's page: photos, type, colour, size, design and an **availability calendar** (Navratri nights highlighted). **No prices, deposits, customers or bookings are shown.**
+- **Full collection** (`https://omgrental.netlify.app/#/catalog`) lists every piece with search, type filter and "free on date" filter. Share this link on WhatsApp or Instagram.
+- Every other page (dashboard, customers, bookings, reports, settings) still needs a staff login. Staff who are logged in see the full item page with prices when they scan.
+- Sold and lost pieces are hidden automatically. Photos come from the item photos (ID proofs are never shown).
