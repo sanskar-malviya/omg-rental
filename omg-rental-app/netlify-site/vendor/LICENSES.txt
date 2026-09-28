@@ -1,0 +1,11 @@
+Third-party libraries bundled with OMG Rental
+=============================================
+
+jsQR 1.4.0 — QR code reader (used when the browser has no built-in BarcodeDetector)
+  https://github.com/cozmo/jsQR
+  Copyright Cosmo Wolfe. Licensed under the Apache License 2.0.
+
+qrcode-generator 1.4.4 — QR code generator for printable item tags
+  https://github.com/kazuhikoarase/qrcode-generator
+  Copyright (c) 2009 Kazuhiko Arase. Licensed under the MIT License.
+  The word "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.

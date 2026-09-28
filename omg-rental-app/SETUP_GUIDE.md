@@ -77,3 +77,10 @@ Apps Script → ⚙ **Project Settings** → scroll to **Script Properties** →
 
 Files are stored as `items/<ITEM CODE>/…jpg` and `damage/<BOOKING NO>/<ITEM CODE>-…jpg`. "Remove" hides a photo in the app. The file stays in the branch history.
 
+
+## QR tags & scanning
+- **Print tags:** open an item → **Print tag**, or go to **Inventory → Print tags** to print everything in the current filter (up to 60 at a time). Each QR holds the item's app link, e.g. `https://omgrental.netlify.app/#/item/G021`.
+- **Scan:** tap the scan icon in the top bar (opens the item) or **Scan tag to add** in New Rental (adds the piece to the booking). The first time, allow camera access.
+- The camera only works on the **https** Netlify link, not when opening the HTML file directly. If the camera was blocked: tap the 🔒 in the address bar → Permissions → Camera → Allow.
+- A USB/Bluetooth barcode scanner also works: it "types" the tag into the search box or the scan popup.
+- Scanner libraries are bundled in `netlify-site/vendor/` (jsQR, Apache-2.0; qrcode-generator, MIT; see `vendor/LICENSES.txt`).

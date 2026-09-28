@@ -589,7 +589,21 @@ body.login-mode .app{grid-template-columns:1fr}
   .bottomnav a{font-size:10px}
   h1.pg{font-size:22px}
 }
-@media print{.side,.top,.bottomnav,.tour-fab,.tour{display:none!important}.app{display:block}}
+.scanbox{background:#1d1219;border-radius:16px;aspect-ratio:4/3;max-height:52vh;position:relative;overflow:hidden;display:grid;place-items:center;color:#fff}
+.scanbox video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scanbox .frame{position:relative;width:62%;aspect-ratio:1/1;border:3px solid rgba(255,255,255,.9);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.scanbox .frame::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:scanline 1.8s ease-in-out infinite}
+@keyframes scanline{0%,100%{top:12%}50%{top:88%}}
+.scanstat{font-size:13.5px;font-weight:600;color:var(--ink-2);text-align:center;min-height:20px}
+.tagcard{border:2px dashed var(--line-2);border-radius:14px;padding:14px;width:220px;text-align:center;background:#fff;break-inside:avoid;page-break-inside:avoid}
+.tagcard .qr svg{width:150px;height:150px;display:block;margin:8px auto}
+.tagsheet{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+@media print{.side,.top,.bottomnav,.tour-fab,.tour{display:none!important}.app{display:block}
+  body.print-tag .app,body.print-tag .bottomnav,body.print-tag #tourRoot,body.print-tag .toasts{display:none!important}
+  body.print-tag .scrim{position:static;background:none;padding:0;display:block;animation:none}
+  body.print-tag .modal{box-shadow:none;max-width:none;max-height:none;overflow:visible;border-radius:0;animation:none}
+  body.print-tag .modal-h,body.print-tag .modal-f,body.print-tag .no-print{display:none!important}
+  body.print-tag .tagcard{border-color:#999}}
 </style>
 </head>
 <body>
@@ -1313,7 +1327,7 @@ function openModal({ title, body, foot = '', wide = false }) {
     <div class="modal-h"><h3 class="grow">${title}</h3><button class="btn btn-ghost icon-btn" onclick="closeModal()" aria-label="Close">${ic('x')}</button></div>
     <div class="modal-b">${body}</div>${foot ? `<div class="modal-f">${foot}</div>` : ''}</div></div>`;
 }
-function closeModal() { $('#overlay').innerHTML = ''; }
+function closeModal() { if (typeof stopScan === 'function') stopScan(); $('#overlay').innerHTML = ''; }
 function toast(msg, kind = '') {
   const el = document.createElement('div'); el.className = 'toast ' + kind;
   el.innerHTML = (kind === 'good' ? ic('check', 18, 2.6) : kind === 'bad' ? ic('alert', 18) : '') + `<span>${msg}</span>`;
@@ -1411,6 +1425,7 @@ function switchUser(id) {
 }
 function globalSearch(v) {
   v = v.trim(); if (!v) return;
+  const sc = codeFromScan(v); if (sc && item(sc)) { GQ = ''; return go('#/item/' + sc); }
   const up = v.toUpperCase().replace(/\s/g, '');
   if (item(up)) { GQ = ''; return go('#/item/' + up); }
   const bm = up.match(/^(OMG-?)?0*(\d{1,5})$/);
@@ -1418,17 +1433,103 @@ function globalSearch(v) {
   if (/^\d{4,}$/.test(up)) return go('#/customers?q=' + up);
   return go('#/inventory?q=' + encodeURIComponent(v));
 }
-function scanModal() {
+/* ---------- QR scanning (real camera) ----------
+   Uses the browser's built-in BarcodeDetector when available (Chrome/Android), otherwise jsQR.
+   Libraries are bundled in /vendor (Netlify) with a CDN fallback (standalone file). */
+const LIBS = {};
+function loadScript(local, cdn) {
+  if (LIBS[local]) return LIBS[local];
+  const add = src => new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+  LIBS[local] = add(local).catch(() => add(cdn));
+  return LIBS[local];
+}
+const loadJsQR = () => loadScript('vendor/jsQR.min.js', 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js');
+const loadQRGen = () => loadScript('vendor/qrcode.min.js', 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js');
+/* What a tag contains: the app link to the item (works with any phone camera too). */
+function tagText(code) {
+  const base = /^https?:/.test(location.protocol) ? location.origin + location.pathname : '';
+  return base ? base + '#/item/' + code : 'OMG:' + code;
+}
+/* Turn scanned text (URL, "OMG:G021" or plain "G021") into an item code */
+function codeFromScan(text) {
+  const t = String(text || '').trim();
+  const m = t.match(/#\/item\/([A-Za-z]{1,3}\d{2,6})/) || t.match(/^(?:OMG[:\-\s])?([A-Za-z]{1,3}\d{2,6})$/i);
+  return m ? m[1].toUpperCase() : null;
+}
+let SCAN = null;
+function stopScan() {
+  if (!SCAN) return;
+  clearTimeout(SCAN.timer);
+  if (SCAN.stream) SCAN.stream.getTracks().forEach(t => t.stop());
+  SCAN = null;
+}
+function scanDone(code) {
+  const cb = SCAN && SCAN.onCode; stopScan(); closeModal();
+  if (navigator.vibrate) navigator.vibrate(60);
+  if (cb) cb(code); else go('#/item/' + code);
+}
+function scanManual(v) {
+  const code = codeFromScan(v) || String(v || '').trim().toUpperCase();
+  if (!code) return;
+  if (!item(code)) { const el = $('#scanStat'); if (el) el.textContent = `No item with code ${code}`; return; }
+  scanDone(code);
+}
+async function scanModal(onCode) {
+  stopScan();
   openModal({
-    title: 'Scan item tag',
-    body: `<div class="stack"><div style="background:#1d1219;border-radius:16px;height:200px;position:relative;display:grid;place-items:center;color:#fff;overflow:hidden">
-        <div style="width:160px;height:110px;border:3px solid rgba(255,255,255,.85);border-radius:14px;position:relative"><div style="position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent)"></div></div>
-        <div class="tiny" style="position:absolute;bottom:10px;opacity:.7">Camera preview (simulated)</div></div>
-      <div class="hint">Every piece carries a QR/barcode tag with its item code. On a tablet or phone the camera reads it; a USB scanner also works — it simply “types” the code.</div>
-      <div class="field"><label>Or type the code</label><input class="input big mono" id="scanIn" placeholder="G021" onkeydown="if(event.key==='Enter'){closeModal();globalSearch(this.value)}"></div>
-      <div class="row wrap"><span class="small muted">Demo tags:</span>${['G021', 'C043', 'J027', 'G014', 'D015'].map(c => `<button class="btn btn-sm" onclick="closeModal();go('#/item/${c}')">${c}</button>`).join('')}</div></div>`,
+    title: onCode ? 'Scan tag to add' : 'Scan item tag',
+    body: `<div class="stack">
+      <div class="scanbox"><video id="scanVid" playsinline muted></video><div class="frame"></div></div>
+      <div class="scanstat" id="scanStat">Starting camera…</div>
+      <div class="field"><label>Or type / scan with a USB scanner</label><input class="input big mono" id="scanIn" placeholder="G021" autocomplete="off" onkeydown="if(event.key==='Enter')scanManual(this.value)"></div>
+      <div class="hint">Tip: good light, hold the tag 10–20 cm from the camera. Print tags from any item → Print tag.</div></div>`,
   });
-  setTimeout(() => $('#scanIn') && $('#scanIn').focus(), 50);
+  SCAN = { onCode, stream: null, timer: null };
+  const mine = SCAN;
+  const status = m => { const el = $('#scanStat'); if (el) el.textContent = m; };
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    status('Camera works only when the app is opened over https (your Netlify link). You can type the code below.'); return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    if (SCAN !== mine || !$('#scanVid')) { stream.getTracks().forEach(t => t.stop()); return; }
+    SCAN.stream = stream;
+    const v = $('#scanVid'); v.srcObject = stream; await v.play();
+    let native = null;
+    if ('BarcodeDetector' in window) {
+      try { const f = await window.BarcodeDetector.getSupportedFormats(); if (f.includes('qr_code')) native = new window.BarcodeDetector({ formats: f.filter(x => ['qr_code', 'code_128', 'code_39', 'ean_13'].includes(x)) }); } catch (e) { native = null; }
+    }
+    if (!native) { status('Loading scanner…'); await loadJsQR(); }
+    status('Point the camera at the QR tag');
+    const c = document.createElement('canvas'), ctx = c.getContext('2d', { willReadFrequently: true });
+    const tick = async () => {
+      if (SCAN !== mine || !$('#scanVid')) return;
+      try {
+        if (v.readyState >= 2 && v.videoWidth) {
+          let text = null;
+          if (native) { const r = await native.detect(v); if (r && r[0]) text = r[0].rawValue; }
+          else {
+            const sc = Math.min(1, 800 / Math.max(v.videoWidth, v.videoHeight));
+            c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+            ctx.drawImage(v, 0, 0, c.width, c.height);
+            const r = window.jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'dontInvert' });
+            if (r) text = r.data;
+          }
+          if (text) {
+            const code = codeFromScan(text);
+            if (code && item(code)) return scanDone(code);
+            status(code ? `No item with code ${code} in this shop` : 'That is not an OMG Rental tag');
+          }
+        }
+      } catch (e) { /* keep trying */ }
+      if (SCAN === mine) SCAN.timer = setTimeout(tick, 180);
+    };
+    tick();
+  } catch (e) {
+    status(e && e.name === 'NotAllowedError' ? 'Camera permission is blocked. Allow the camera for this site (tap the 🔒 in the address bar), or type the code below.'
+      : e && e.name === 'NotFoundError' ? 'No camera found on this device. Type the code below or use a USB scanner.'
+        : 'Could not start the camera (' + ((e && (e.message || e.name)) || 'error') + '). Type the code below.');
+  }
 }
 
 /* ---------- DASHBOARD ---------- */
@@ -1602,7 +1703,7 @@ function scrInventory(r) {
   return {
     t: 'Inventory', s: `${DB.items.length} pieces · each tracked individually`, html: `
     <div class="pagehead"><div class="grow"><div class="eyebrow">Garba 2026 collection</div><h1 class="pg">Inventory</h1><p>Every choli, ghagra, dupatta and jewellery set has its own code, status and history.</p></div>
-      <button class="btn btn-lg" onclick="scanModal()">${ic('scan', 20)} Scan tag</button>
+      <button class="btn btn-lg" onclick="scanModal()">${ic('scan', 20)} Scan tag</button><button class="btn btn-lg" onclick="tagsModal(invFiltered().map(x=>x.it.code))">${ic('print', 20)} Print tags</button>
       ${can('inventory.edit') ? `<button class="btn btn-primary btn-lg" onclick="addItemModal()">${ic('plus', 20)} Add item</button>` : ''}</div>
     ${INV.codes ? `<div class="banner good" style="margin-bottom:14px">${ic('check')}<div class="grow">Showing the ${INV.codes.length} items from the booking you just closed — back on the rail.</div><button class="btn btn-sm" onclick="go('#/inventory')">Show all</button></div>` : ''}
     <div class="filters">
@@ -1750,16 +1851,43 @@ function scrItem(code) {
       </div>
     </div>` };
 }
+/* ---------- Printable QR tags ---------- */
+function tagCard(it) {
+  return `<div class="tagcard"><div class="eyebrow">OMG Rental</div><div class="qr" data-qr="${esc(tagText(it.code))}"><div class="hint" style="padding:60px 0">Making QR…</div></div>
+    <div class="mono" style="font-size:26px;font-weight:800">${it.code}</div><div class="small">${esc(it.name)}</div><div class="tiny muted">${esc(it.size)}${it.deposit ? ' · Deposit ' + rs(it.deposit) : ''}</div></div>`;
+}
+async function fillQRs(root) {
+  try {
+    await loadQRGen();
+    root.querySelectorAll('[data-qr]').forEach(el => {
+      const q = window.qrcode(0, 'M'); q.addData(el.getAttribute('data-qr')); q.make();
+      el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    });
+  } catch (e) { root.querySelectorAll('[data-qr]').forEach(el => el.innerHTML = '<div class="err" style="padding:40px 0">QR library could not load — check internet</div>'); }
+}
+function printTags() {
+  document.body.classList.add('print-tag');
+  const done = () => { document.body.classList.remove('print-tag'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => { window.print(); setTimeout(done, 1500); }, 100);
+}
 function tagModal(code) {
-  const it = item(code); let h = 0; for (const ch of code) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  let cells = ''; for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) { const f = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13); const on = f ? ((x % 6 === 0 || y % 6 === 0 || (x % 7 > 1 && x % 7 < 5 && y % 7 > 1 && y % 7 < 5)) && !(x % 7 === 6 && x > 13 && false)) : ((h >> ((x * 7 + y * 3) % 31)) & 1) ^ ((x * y) % 3 === 0); if (on) cells += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }
+  const it = item(code);
   openModal({
-    title: 'Item tag', body: `<div style="display:flex;justify-content:center"><div style="border:2px dashed var(--line-2);border-radius:14px;padding:18px;width:260px;text-align:center">
-      <div class="eyebrow">OMG Rental</div><svg viewBox="-1 -1 23 23" width="150" height="150" style="margin:10px auto;display:block" shape-rendering="crispEdges" fill="#2a1a22">${cells}</svg>
-      <div class="mono" style="font-size:28px;font-weight:800">${it.code}</div><div class="small">${esc(it.name)}</div><div class="tiny muted">${esc(it.size)} · Deposit ${rs(it.deposit)}</div></div></div>
-      <p class="hint" style="text-align:center">Sew-in fabric label or swing tag. Scanning it opens this item instantly.</p>`,
-    foot: `<button class="btn btn-lg" onclick="closeModal()">Close</button><button class="btn btn-primary btn-lg" onclick="toast('Sent to label printer (simulated)','good');closeModal()">${ic('print', 18)} Print</button>`,
+    title: 'Item tag', body: `<div class="tagsheet">${tagCard(it)}</div>
+      <p class="hint no-print" style="text-align:center">Stick or sew this tag on the piece. Scanning it (in the app or with the phone camera) opens this item.</p>`,
+    foot: `<button class="btn btn-lg" onclick="closeModal()">Close</button><button class="btn btn-primary btn-lg" onclick="printTags()">${ic('print', 18)} Print</button>`,
   });
+  fillQRs($('#overlay'));
+}
+function tagsModal(codes) {
+  const list = codes.slice(0, 60).map(item).filter(Boolean);
+  openModal({
+    title: `Print tags · ${list.length} piece${list.length === 1 ? '' : 's'}`, wide: true,
+    body: `${codes.length > 60 ? '<div class="banner warn no-print" style="margin-bottom:12px">Showing the first 60. Use the filters to print the rest.</div>' : ''}<div class="tagsheet">${list.map(tagCard).join('')}</div>`,
+    foot: `<button class="btn btn-lg" onclick="closeModal()">Close</button><button class="btn btn-primary btn-lg" onclick="printTags()">${ic('print', 18)} Print ${list.length} tags</button>`,
+  });
+  fillQRs($('#overlay'));
 }
 function repairModal(code) {
   openModal({
@@ -1994,7 +2122,8 @@ function wizStep2() {
   <div class="card pad stack"><div class="row between"><h3>Packages</h3><span class="hint">Package price · pieces tracked individually</span></div>
     <div class="pkgs">${DB.packages.map(p => `<button class="pkg ${p.key === 'queen' ? 'queen' : ''}" onclick="wizAddPkg('${p.key}')"><b>${esc(p.name)}</b><span class="p">${rs(p.price)}</span><span class="inc">${esc(p.desc)}</span></button>`).join('')}</div></div>
   <div class="card pad stack"><div class="row between"><h3>Add items</h3><span class="hint">Only pieces free for these dates can be added</span></div>
-    <div class="input-wrap"><span class="pre">${ic('search', 18)}</span><input class="input" id="wiq" style="padding-left:40px" placeholder="Type code (C043), colour or style…" value="${esc(W.iq)}" oninput="W.iq=this.value;wizItemRes()" onkeydown="if(event.key==='Enter'){const f=document.querySelector('#wires [data-add]');if(f)f.click()}" autocomplete="off"></div>
+    <div class="input-wrap"><span class="pre">${ic('search', 18)}</span><input class="input" id="wiq" style="padding-left:40px" placeholder="Type code (C043), colour or style…" value="${esc(W.iq)}" oninput="W.iq=this.value;wizItemRes()" onkeydown="if(event.key==='Enter'){const c=codeFromScan(this.value);if(c&&item(c)&&!W.lines.some(l=>l.code===c)){wizAdd(c);return}const f=document.querySelector('#wires [data-add]');if(f)f.click()}" autocomplete="off"></div>
+    <button class="btn btn-lg btn-soft" onclick="scanModal(c=>{ if(W.lines.some(l=>l.code===c)) return toast(c+' is already in this booking'); wizAdd(c); })">${ic('scan', 18)} Scan tag to add</button>
     <div class="chips scroll">${[['all', 'All'], ...Object.entries(TYPES).map(([k, v]) => [k, v.short])].map(([k, l]) => `<button class="chip ${W.itype === k ? 'on' : ''}" onclick="W.itype='${k}';render()">${l}</button>`).join('')}</div>
     <div id="wires"></div></div>
   <div class="card"><div class="card-h">${ic('bag', 20)}<h3 class="grow">In this booking</h3><span class="badge">${W.lines.length}</span></div><div class="card-b" id="wcart"></div></div>
