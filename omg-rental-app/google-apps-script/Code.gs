@@ -1,0 +1,219 @@
+/**
+ * OMG Rental — Google Sheets API (Google Apps Script)
+ * ---------------------------------------------------
+ * Paste this into the Google Sheet: Extensions → Apps Script → Code.gs
+ * 1. Run  setup()  once (creates every tab + the Owner login, PIN 1234).
+ * 2. Deploy → New deployment → Web app · Execute as: Me · Who has access: Anyone
+ * 3. Copy the Web app URL into the OMG Rental app (Settings → Connection) or config.js.
+ *
+ * The sheet is the single source of truth. The app never deletes rows:
+ * bookings / payments / sales change status instead.
+ */
+
+var SCHEMA = {
+  Collections:    { key: 'collection_id', cols: ['collection_id', 'name', 'status', 'description'] },
+  Items:          { key: 'item_code', cols: ['item_code', 'type_code', 'collection_id', 'name', 'colour', 'colour_hex', 'size', 'design_style', 'purchase_cost', 'rent_price', 'sale_price', 'security_deposit', 'mode', 'condition', 'physical_status', 'notes', 'prev_rentals', 'prev_revenue', 'repair_cost', 'added_on'] },
+  Packages:       { key: 'package_id', cols: ['package_id', 'name', 'price', 'description', 'slots', 'includes_salon_offer'] },
+  Customers:      { key: 'customer_id', cols: ['customer_id', 'name', 'mobile', 'whatsapp', 'email', 'address', 'customer_since', 'omg_salon_client', 'notes'] },
+  Bookings:       { key: 'booking_no', cols: ['booking_no', 'customer_id', 'customer_name', 'pickup_at', 'event_date', 'return_by', 'rent_gross', 'extra_days', 'discount', 'voucher_code', 'deposit_due', 'status', 'picked_at', 'received_at', 'closed_at', 'cancel_reason', 'late_flag_amount', 'late_flag_at', 'notes', 'created_by', 'created_at'] },
+  Booking_Items:  { key: 'line_id', cols: ['line_id', 'booking_no', 'item_code', 'package_no', 'package_id', 'package_name', 'package_price', 'list_price', 'allocated_price', 'deposit', 'blocked_from', 'blocked_until'] },
+  Payments:       { key: 'payment_id', cols: ['payment_id', 'booking_no', 'kind', 'amount', 'mode', 'at', 'recorded_by'] },
+  Booking_Events: { key: 'event_id', cols: ['event_id', 'booking_no', 'at', 'by', 'text'] },
+  Returns:        { key: 'booking_no', cols: ['booking_no', 'received_at', 'inspected_at', 'late_minutes', 'late_fee', 'late_fee_waived', 'refund', 'refund_mode', 'extra_collected', 'collect_mode', 'rent_deducted'] },
+  Return_Items:   { key: 'line_id', cols: ['line_id', 'booking_no', 'item_code', 'condition', 'charge', 'note'] },
+  Sales:          { key: 'sale_id', cols: ['sale_id', 'item_code', 'customer_id', 'walk_in', 'list_price', 'discount', 'voucher_code', 'price', 'mode', 'at', 'sold_by', 'voided'] },
+  Vouchers:       { key: 'code', cols: ['code', 'description', 'issuer', 'type', 'value', 'max_discount', 'min_amount', 'valid_from', 'valid_to', 'usage_limit', 'used', 'per_customer', 'collection', 'applies_to', 'status'] },
+  Users:          { key: 'user_id', cols: ['user_id', 'name', 'role', 'login', 'active', 'pin_hash'] },
+  Settings:       { key: 'key', cols: ['key', 'value'] },
+  Item_History:   { key: 'history_id', cols: ['history_id', 'item_code', 'at', 'by', 'event'] },
+  Audit_Log:      { key: 'audit_id', cols: ['audit_id', 'at', 'user', 'role', 'action', 'record', 'details'] }
+};
+var ADMIN_TABLES = ['Users', 'Settings', 'Collections', 'Packages'];
+var DATE_COL = /(_at|_date|_from|_until|^at|^valid_from|^valid_to)$/;
+var SESSION_SECONDS = 6 * 60 * 60;
+
+/* ============ ONE-TIME SETUP (run from the Apps Script editor) ============ */
+function setup() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.setSpreadsheetTimeZone('Asia/Kolkata');
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('SALT')) props.setProperty('SALT', Utilities.getUuid());
+  Object.keys(SCHEMA).forEach(function (name, i) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) {
+      var first = ss.getSheets()[0];
+      if (i === 0 && first.getLastRow() === 0 && first.getName().indexOf('Sheet') === 0) { sh = first; sh.setName(name); }
+      else sh = ss.insertSheet(name);
+    }
+    if (sh.getLastRow() === 0) {
+      sh.getRange(1, 1, 1, SCHEMA[name].cols.length).setValues([SCHEMA[name].cols])
+        .setFontWeight('bold').setFontColor('#ffffff').setBackground('#7a1f4b');
+      sh.setFrozenRows(1);
+    }
+  });
+  var users = sheetObjects('Users');
+  if (!users.length) {
+    appendObjects('Users', [{ user_id: 'u1', name: 'Shop Owner', role: 'admin', login: 'owner', active: 'yes', pin_hash: hashPin('1234') }]);
+  }
+  Logger.log('Setup complete. Owner login PIN is 1234 — change it in the app (Settings → Users & roles).');
+}
+
+/* First-run safety net: if the sheet has no tabs/users yet, set it up automatically. */
+function ensureSetup() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+  if (sh && sh.getLastRow() >= 2) return;
+  var lock = LockService.getScriptLock(); lock.waitLock(25000);
+  try { sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users'); if (!sh || sh.getLastRow() < 2) setup(); }
+  finally { lock.releaseLock(); }
+}
+
+/* ============ HTTP ENTRY POINTS ============ */
+function doGet() { return json({ ok: true, app: 'OMG Rental API', version: 1 }); }
+
+function doPost(e) {
+  var req;
+  try { req = JSON.parse(e.postData.contents); } catch (x) { return json({ ok: false, error: 'Bad request' }); }
+  try {
+    switch (req.action) {
+      case 'ping': return json({ ok: true, serverTime: new Date().toISOString() });
+      case 'users':
+        ensureSetup();
+        return json({ ok: true, users: sheetObjects('Users').filter(isActive).map(function (u) { return { user_id: u.user_id, name: u.name, role: u.role }; }) });
+      case 'login': return json(login(req.user_id, req.pin));
+      case 'logout': CacheService.getScriptCache().remove('t_' + req.token); return json({ ok: true });
+      case 'load': var u = auth(req.token); return json({ ok: true, user: u, tables: loadAll(), serverTime: new Date().toISOString() });
+      case 'commit': return json(commit(auth(req.token), req.changes || {}, req.newBookings || []));
+      case 'verifyPin': auth(req.token); return json(verifyPin(req.pin));
+      case 'setPin': return json(setPin(auth(req.token), req.user_id, req.pin));
+      default: return json({ ok: false, error: 'Unknown action' });
+    }
+  } catch (err) {
+    return json({ ok: false, error: String(err && err.message || err), code: (err && err.code) || 'error' });
+  }
+}
+
+/* ============ AUTH ============ */
+function hashPin(pin) {
+  var salt = PropertiesService.getScriptProperties().getProperty('SALT') || '';
+  var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + ':' + String(pin), Utilities.Charset.UTF_8);
+  return Utilities.base64Encode(raw);
+}
+function isActive(u) { return String(u.active).toLowerCase() !== 'no'; }
+function fail(msg, code) { var e = new Error(msg); e.code = code || 'error'; throw e; }
+function login(userId, pin) {
+  var cache = CacheService.getScriptCache(), k = 'fail_' + userId, n = +(cache.get(k) || 0);
+  if (n >= 5) return { ok: false, error: 'Too many wrong PINs. Try again in 10 minutes.' };
+  var u = sheetObjects('Users').filter(function (x) { return x.user_id === userId && isActive(x); })[0];
+  if (!u || u.pin_hash !== hashPin(pin)) { cache.put(k, String(n + 1), 600); return { ok: false, error: 'Wrong PIN' }; }
+  cache.remove(k);
+  var token = Utilities.getUuid(), user = { user_id: u.user_id, name: u.name, role: u.role };
+  cache.put('t_' + token, JSON.stringify(user), SESSION_SECONDS);
+  return { ok: true, token: token, user: user };
+}
+function auth(token) {
+  var cache = CacheService.getScriptCache(), s = token && cache.get('t_' + token);
+  if (!s) fail('Session expired — please log in again', 'auth');
+  cache.put('t_' + token, s, SESSION_SECONDS);
+  return JSON.parse(s);
+}
+function verifyPin(pin) {
+  var h = hashPin(pin);
+  var m = sheetObjects('Users').filter(function (u) { return isActive(u) && (u.role === 'manager' || u.role === 'admin') && u.pin_hash === h; })[0];
+  return m ? { ok: true, name: m.name } : { ok: false, error: 'Incorrect manager PIN' };
+}
+function setPin(user, userId, pin) {
+  if (user.role !== 'admin' && user.user_id !== userId) fail('Only an admin can change another user’s PIN', 'forbidden');
+  if (!/^\d{4,6}$/.test(String(pin))) fail('PIN must be 4–6 digits');
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try { upsertObjects('Users', [{ user_id: userId, pin_hash: hashPin(pin) }]); } finally { lock.releaseLock(); }
+  return { ok: true };
+}
+
+/* ============ READ ============ */
+function loadAll() {
+  var out = {};
+  Object.keys(SCHEMA).forEach(function (t) {
+    out[t] = sheetObjects(t).map(function (o) { delete o.pin_hash; return o; });
+  });
+  return out;
+}
+function sheetObjects(name) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var v = sh.getDataRange().getValues(), h = v[0], out = [];
+  for (var r = 1; r < v.length; r++) {
+    if (v[r].join('') === '') continue;
+    var o = {};
+    for (var c = 0; c < h.length; c++) if (h[c]) o[h[c]] = v[r][c];
+    out.push(o);
+  }
+  return out;
+}
+
+/* ============ WRITE (inside a lock, so two tablets can't clash) ============ */
+function commit(user, changes, newBookings) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    Object.keys(changes).forEach(function (t) {
+      if (!SCHEMA[t]) fail('Unknown table ' + t);
+      if (ADMIN_TABLES.indexOf(t) >= 0 && user.role !== 'admin') fail('Only an admin can change ' + t, 'forbidden');
+    });
+    if (changes.Users) changes.Users.forEach(function (r) { delete r.pin_hash; });
+    checkNewBookings(changes, newBookings);
+    Object.keys(changes).forEach(function (t) { if (changes[t].length) upsertObjects(t, changes[t]); });
+    return { ok: true, serverTime: new Date().toISOString() };
+  } finally { lock.releaseLock(); }
+}
+
+/* Double-booking guard: re-checked on the server for every new booking. */
+function checkNewBookings(changes, newBookings) {
+  if (!newBookings.length) return;
+  var bookings = sheetObjects('Bookings'), status = {};
+  bookings.forEach(function (b) { status[b.booking_no] = b.status; });
+  newBookings.forEach(function (no) { if (status[no]) fail('Booking number ' + no + ' is already taken — refreshing, please confirm again', 'conflict'); });
+  var existing = sheetObjects('Booking_Items').filter(function (l) { return status[l.booking_no] === 'reserved' || status[l.booking_no] === 'picked'; });
+  var now = new Date();
+  (changes.Booking_Items || []).forEach(function (l) {
+    if (newBookings.indexOf(l.booking_no) < 0) return;
+    var from = new Date(l.blocked_from), until = new Date(l.blocked_until);
+    existing.forEach(function (x) {
+      if (x.item_code !== l.item_code) return;
+      var xf = new Date(x.blocked_from), xu = new Date(x.blocked_until);
+      if (status[x.booking_no] === 'picked' && now > xu) xu = now;       // still out (overdue)
+      if (from < xu && xf < until) fail(l.item_code + ' was just booked on ' + x.booking_no + ' — please choose another piece', 'conflict');
+    });
+  });
+}
+
+function upsertObjects(name, rows) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(name);
+  if (!sh) { sh = ss.insertSheet(name); sh.getRange(1, 1, 1, SCHEMA[name].cols.length).setValues([SCHEMA[name].cols]); sh.setFrozenRows(1); }
+  var key = SCHEMA[name].key;
+  var lastCol = Math.max(1, sh.getLastColumn());
+  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+  rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (headers.indexOf(k) < 0) { headers.push(k); sh.getRange(1, headers.length).setValue(k).setFontWeight('bold'); } }); });
+  var kc = headers.indexOf(key) + 1;
+  var last = sh.getLastRow(), idx = {};
+  if (last >= 2) sh.getRange(2, kc, last - 1, 1).getValues().forEach(function (v, i) { idx[String(v[0])] = i + 2; });
+  var appends = [];
+  rows.forEach(function (r) {
+    var rowNo = idx[String(r[key])];
+    if (rowNo) {
+      var cur = sh.getRange(rowNo, 1, 1, headers.length).getValues()[0];
+      headers.forEach(function (h, c) { if (h in r) cur[c] = cell(h, r[h]); });
+      sh.getRange(rowNo, 1, 1, headers.length).setValues([cur]);
+    } else {
+      appends.push(headers.map(function (h) { return h in r ? cell(h, r[h]) : ''; }));
+      idx[String(r[key])] = -1;
+    }
+  });
+  if (appends.length) sh.getRange(sh.getLastRow() + 1, 1, appends.length, headers.length).setValues(appends);
+}
+function appendObjects(name, rows) { upsertObjects(name, rows); }
+function cell(h, v) {
+  if (v === null || v === undefined) return '';
+  if (DATE_COL.test(h) && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return new Date(v);
+  return v;
+}
+function json(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }

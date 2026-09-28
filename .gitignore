@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.env
+# Older prototype kept locally only
+OMG_Rental_Clickable_Prototype (1).html
