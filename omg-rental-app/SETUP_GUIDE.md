@@ -108,8 +108,8 @@ Emails are sent by the Apps Script through Gmail. Every email is recorded in the
 All times, texts and on/off switches: **Settings → Email & reminders** (owner only).
 
 ### One-time setup
-1. **Send from your business Gmail** (if it is not the Google account that owns the sheet): sign in to Gmail of the account that owns the sheet/script → ⚙ **See all settings → Accounts → Send mail as → Add another email address** → your business address → SMTP server , port , username = business email, password = the business Gmail **App Password**, TLS → confirm the code that arrives in the business inbox. The App Password stays inside Gmail — it is never stored in the app, the sheet or GitHub.
-2. Paste the latest  into Apps Script → Save.
+1. **Send from your business Gmail** (if it is not the Google account that owns the sheet): sign in to Gmail of the account that owns the sheet/script → ⚙ **See all settings → Accounts → Send mail as → Add another email address** → your business address → SMTP server `smtp.gmail.com`, port `587`, username = business email, password = the business Gmail **App Password**, TLS → confirm the code that arrives in the business inbox. The App Password stays inside Gmail — it is never stored in the app, the sheet or GitHub.
+2. Paste the latest `Code.gs` into Apps Script → Save.
 3. Choose **setupEmail** → **Run** → **Allow** (Gmail send + triggers). It switches on the 15-minute reminder run and emails you a test.
 4. **Deploy → Manage deployments → ✏️ → New version → Deploy.**
 5. In the app: Settings → Email & reminders → fill **Sender email**, **Reply-to**, **Staff email**, address, Google Maps link and review link → **Send test**.
