@@ -2958,7 +2958,7 @@ function scheduleSync() { if (!LIVE || !TOKEN) return; clearTimeout(syncTimer); 
 async function reloadData(quiet) {
   if (!LIVE || !TOKEN) return;
   try {
-    const r = await api('load'); if (!r.ok) { if (r.code !== 'auth') toast('Could not load data: ' + r.error, 'bad'); return; }
+    const r = await api('load', quiet ? {} : { fresh: true }); if (!r.ok) { if (r.code !== 'auth') toast('Could not load data: ' + r.error, 'bad'); return; }
     DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled; LOADED = true;
     CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };
     setSync('saved'); render(); if (!quiet) toast('Up to date with the Google Sheet', 'good');
@@ -3004,16 +3004,16 @@ async function doLogin() {
   if (LOGIN.pin.length < 4) { LOGIN.err = 'PIN is 4–6 digits'; return renderLogin(); }
   LOGIN.busy = true; renderLogin();
   try {
-    const r = await api('login', { user_id: LOGIN.sel, pin: LOGIN.pin });
+    const r = await api('login', { user_id: LOGIN.sel, pin: LOGIN.pin, withData: true });
     LOGIN.busy = false; LOGIN.pin = '';
     if (!r.ok) { LOGIN.err = r.error; return renderLogin(); }
     TOKEN = r.token; try { localStorage.setItem('omg_session', JSON.stringify({ token: r.token, user: r.user })); } catch (e) { }
-    LOGIN.err = ''; await enterLive();
+    LOGIN.err = ''; await enterLive(r.tables ? r : null);
   } catch (e) { LOGIN.busy = false; LOGIN.err = 'Cannot reach the server. Check internet.'; renderLogin(); }
 }
-async function enterLive() {
+async function enterLive(pre) {
   $('#page').innerHTML = `<div class="login-card card pad" style="text-align:center"><h3>Loading your shop data…</h3><p class="muted small">Reading the Google Sheet</p></div>`;
-  const r = await api('load');
+  const r = pre || await api('load');
   if (!r.ok) { if (r.code !== 'auth') { LOGIN.err = r.error; logoutLocal(); } return; }
   DB = fromTables(r.tables); SYNCED = snapshotMap(toTables(DB)); PHOTOS_ON = !!r.photosEnabled; LOADED = true;
   CUR = DB.users.find(u => u.id === r.user.user_id) || { id: r.user.user_id, name: r.user.name, role: r.user.role };

@@ -80,9 +80,12 @@ function doPost(e) {
       case 'users':
         ensureSetup();
         return json({ ok: true, users: sheetObjects('Users').filter(isActive).map(function (u) { return { user_id: u.user_id, name: u.name, role: u.role }; }) });
-      case 'login': return json(login(req.user_id, req.pin));
+      case 'login':
+        var lg = login(req.user_id, req.pin);
+        if (lg.ok && req.withData) { lg.tables = loadAll(); lg.photosEnabled = photosEnabled(); lg.serverTime = new Date().toISOString(); }   // saves a second round trip
+        return json(lg);
       case 'logout': CacheService.getScriptCache().remove('t_' + req.token); return json({ ok: true });
-      case 'load': var u = auth(req.token); return json({ ok: true, user: u, tables: loadAll(), photosEnabled: photosEnabled(), serverTime: new Date().toISOString() });
+      case 'load': var u = auth(req.token); return json({ ok: true, user: u, tables: loadAll(!!req.fresh), photosEnabled: photosEnabled(), serverTime: new Date().toISOString() });
       case 'commit': return json(commit(auth(req.token), req.changes || {}, req.newBookings || []));
       case 'verifyPin': auth(req.token); return json(verifyPin(req.pin));
       case 'setPin': return json(setPin(auth(req.token), req.user_id, req.pin));
@@ -146,6 +149,7 @@ function resetData(user, pin) {
       var sh = ss.getSheetByName(t);
       if (sh && sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
     });
+    clearCachedTables();
     upsertObjects('Audit_Log', [{ audit_id: 'A-' + Utilities.getUuid(), at: new Date().toISOString(), user: user.name, role: 'Admin', action: 'All data cleared', record: 'Google Sheet', details: 'Users and settings kept' }]);
   } finally { lock.releaseLock(); }
   return { ok: true };
@@ -212,18 +216,59 @@ function uploadPhoto(user, req) {
   } finally { lock.releaseLock(); }
 }
 
-/* ============ READ ============ */
-function loadAll() {
+/* ============ READ ============
+   Reading 17 tabs from the sheet takes several seconds, so a ready copy of all tables
+   is kept in the script cache. Every save through the app (upsertObjects) and every hand
+   edit in the sheet (onEdit) clears it; the next load rebuilds it. */
+var CACHE_META = 'db_meta', CACHE_CHUNK = 25000, CACHE_SECONDS = 6 * 60 * 60;
+function loadAll(fresh) {
+  var cache = CacheService.getScriptCache();
+  if (!fresh) { var hit = readCachedTables(cache); if (hit) return hit; }
+  var lock = LockService.getScriptLock(); lock.waitLock(25000);   // no save can run while the copy is built
+  try {
+    if (!fresh) { var again = readCachedTables(cache); if (again) return again; }
+    var out = readAllSheets();
+    writeCachedTables(cache, out);
+    return out;
+  } finally { lock.releaseLock(); }
+}
+function readAllSheets() {
+  var byName = {};
+  SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(function (sh) { byName[sh.getName()] = sh; });
   var out = {};
   Object.keys(SCHEMA).forEach(function (t) {
-    out[t] = sheetObjects(t).map(function (o) { delete o.pin_hash; return o; });
+    out[t] = byName[t] ? rowsToObjects(byName[t].getDataRange().getValues()).map(function (o) { delete o.pin_hash; return o; }) : [];
   });
   return out;
 }
+function readCachedTables(cache) {
+  try {
+    var meta = cache.get(CACHE_META); if (!meta) return null;
+    meta = JSON.parse(meta);
+    var keys = []; for (var i = 0; i < meta.n; i++) keys.push('db_' + meta.id + '_' + i);
+    var got = cache.getAll(keys), s = '';
+    for (var k = 0; k < keys.length; k++) { if (got[keys[k]] == null) return null; s += got[keys[k]]; }
+    return JSON.parse(s);
+  } catch (x) { return null; }
+}
+function writeCachedTables(cache, tables) {
+  try {
+    var s = JSON.stringify(tables), id = Utilities.getUuid().slice(0, 8), parts = {}, n = 0;
+    for (var i = 0; i < s.length; i += CACHE_CHUNK) parts['db_' + id + '_' + (n++)] = s.slice(i, i + CACHE_CHUNK);
+    cache.putAll(parts, CACHE_SECONDS);
+    cache.put(CACHE_META, JSON.stringify({ id: id, n: n }), CACHE_SECONDS);
+  } catch (x) { }   // too big for the cache: loads just read the sheet
+}
+function clearCachedTables() { try { CacheService.getScriptCache().remove(CACHE_META); } catch (x) { } }
+/* Runs automatically when someone edits the sheet by hand, so the app sees the change. */
+function onEdit() { clearCachedTables(); }
 function sheetObjects(name) {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
-  if (!sh || sh.getLastRow() < 2) return [];
-  var v = sh.getDataRange().getValues(), h = v[0], out = [];
+  return sh ? rowsToObjects(sh.getDataRange().getValues()) : [];
+}
+function rowsToObjects(v) {
+  if (v.length < 2) return [];
+  var h = v[0], out = [];
   for (var r = 1; r < v.length; r++) {
     if (v[r].join('') === '') continue;
     var o = {};
@@ -270,7 +315,8 @@ function checkNewBookings(changes, newBookings) {
 }
 
 function upsertObjects(name, rows) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(name);
+  clearCachedTables();
+  var ss =SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(name);
   if (!sh) { sh = ss.insertSheet(name); sh.getRange(1, 1, 1, SCHEMA[name].cols.length).setValues([SCHEMA[name].cols]); sh.setFrozenRows(1); }
   var key = SCHEMA[name].key;
   var lastCol = Math.max(1, sh.getLastColumn());
