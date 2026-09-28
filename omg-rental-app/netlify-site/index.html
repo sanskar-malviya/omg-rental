@@ -552,6 +552,17 @@ body.public-mode .page{max-width:1100px;margin:0 auto}
 .pgal .ths{display:flex;gap:8px;margin-top:8px;overflow-x:auto}
 .pgal .ths img{width:64px;height:64px;flex:none;object-fit:cover;border-radius:10px;border:2px solid transparent;cursor:pointer}
 .pgal .ths img.on{border-color:var(--brand)}
+.pgal{position:relative}
+.pgal .slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:var(--r-lg);aspect-ratio:3/4}
+.pgal .slides::-webkit-scrollbar{display:none}
+.pgal .slides img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:center;display:block}
+.pgal .cnt{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px}
+.pgal .nav{position:absolute;top:calc(50% - 22px);width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);box-shadow:0 4px 14px rgba(0,0,0,.2);display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.pgal .nav.l{left:10px}.pgal .nav.r{right:10px}
+@media (hover:none){.pgal .nav{display:none}}
+.pgal .dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.pgal .dots i{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+.pgal .dots i.on{background:var(--brand);width:18px;border-radius:4px}
 .pcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
 .pcal .h{font-size:11px;color:var(--muted);font-weight:700;padding:4px 0}
 .pcal .d{padding:9px 0;border-radius:8px;font-weight:700;font-size:14px;position:relative}
@@ -569,6 +580,24 @@ body.public-mode .page{max-width:1100px;margin:0 auto}
 .pcard .im .pill{position:absolute;top:8px;left:8px}
 .pcard .b{padding:10px 12px}
 .pcard .nm{font-weight:700;font-size:14px;line-height:1.3}
+.ptop .pvis{white-space:nowrap}
+@media (max-width:480px){.ptop .pstaff span{display:none}.ptop .pstaff{width:40px;padding:0}}
+.pstore{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1);margin-top:26px}
+@media (max-width:760px){.pstore{grid-template-columns:minmax(0,1fr)}}
+.pstore .in{padding:22px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(160deg,#fff,var(--brand-soft))}
+.pstore h2{font-family:var(--display);font-size:24px;margin:0;line-height:1.2}
+.pstore .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pstore .acts .btn{min-width:0;padding:0 10px}
+.pstore .map{min-height:260px;background:var(--bg-2)}
+.pstore .map iframe{width:100%;height:100%;min-height:260px;border:0;display:block}
+.prate{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:#fff8e8;border:1px solid #f1d9a6;text-decoration:none;color:inherit}
+.stars{color:#e8a317;display:inline-flex;gap:2px}
+.stars svg{fill:#f2b01e}
+.btn-gold{background:linear-gradient(135deg,#f2b01e,#e0962a);color:#3b2206;border-color:transparent;font-weight:800}
+.revpop{position:fixed;z-index:60;right:18px;bottom:18px;width:min(360px,calc(100vw - 32px));background:#fff;border-radius:20px;box-shadow:0 18px 50px rgba(40,10,25,.28);border:1px solid var(--line);padding:18px;animation:revin .35s ease-out}
+.revpop .x{position:absolute;top:8px;right:8px;width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:50%;display:grid;place-items:center;cursor:pointer}
+@media (max-width:600px){.revpop{left:12px;right:12px;bottom:12px;width:auto}}
+@keyframes revin{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
 .login-card{max-width:440px;margin:5vh auto}
 .icard .img .pill{z-index:1}
 .icard .img>img,.thumb>img{width:100%;height:100%;object-fit:cover;display:block}
@@ -766,6 +795,8 @@ const ICONS = {
   key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',
   eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  pin: '<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  star: '<path d="M12 3.2l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6-4.4-4.3 6.1-.9z"/>',
 };
 const ic = (n, s = 20, sw = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
@@ -3441,6 +3472,49 @@ function hidePhoto(id) {
 /* ---------- Public catalogue — no login needed. QR tags (#/item/CODE) and #/catalog open here.
    Shows photos, details and availability only: no prices, no customers, no bookings. ---------- */
 let PUB = null;
+/* Shop links for customers (catalogue pages + emails use the same ones) */
+const SHOP = {
+  phone: '7610544284',
+  maps: 'https://maps.app.goo.gl/fv9qNEScbicrFLtj6',
+  review: 'https://g.page/r/CYCeMAhZNQ2QEBM/review',
+  embed: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3678.896828193336!2d75.8902214!3d22.7692098!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x396303803a7e7f31%3A0x900d355908309e80!2sOMG%20Rental!5e0!3m2!1sen!2sin!4v1790630290735!5m2!1sen!2sin'
+};
+const starsHTML = (n = 5, s = 18) => '<span class="stars">' + ic('star', s, 1.5).repeat(n) + '</span>';
+function pubStore() {
+  const name = esc(PUB.shop.name || 'OMG Rental');
+  return `<section class="pstore"><div class="in">
+      <div class="eyebrow" style="color:var(--brand)">${ic('pin', 14)} Visit our store</div>
+      <h2>${name}${PUB.shop.city ? ', ' + esc(PUB.shop.city) : ''}</h2>
+      <p class="muted" style="margin:0">Come and try the outfits in person, then book them for your Navratri nights. Pickup on your event day, return the next day.</p>
+      <div class="acts"><a class="btn btn-lg btn-primary" target="_blank" rel="noopener" href="${SHOP.maps}">${ic('pin', 18)} Directions</a><a class="btn btn-lg" href="tel:+91${SHOP.phone}">${ic('phone', 18)} Call</a>
+        <a class="btn btn-lg btn-wa" target="_blank" rel="noopener" href="https://wa.me/91${SHOP.phone}?text=${encodeURIComponent('Hi OMG Rental! I saw your collection online.')}">${ic('wa', 18)} WhatsApp</a><a class="btn btn-lg btn-gold" target="_blank" rel="noopener" href="${SHOP.review}" onclick="revDone()">${ic('star', 18)} Review us</a></div>
+      <a class="prate" target="_blank" rel="noopener" href="${SHOP.review}" onclick="revDone()">${starsHTML(5, 20)}<span class="small"><b>Loved your outfit?</b><br>Tell others on Google. It takes 30 seconds.</span></a>
+    </div><div class="map"><iframe src="${SHOP.embed}" title="${name} on Google Maps" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div></section>`;
+}
+/* Review popup on the customer pages: once, after a short visit; "later" hides it for a week, a review hides it for good */
+const REV = { t: null, views: 0, shown: false };
+const revGet = () => { try { return JSON.parse(localStorage.getItem('omg_review') || '{}'); } catch (e) { return {}; } };
+const revSet = v => { try { localStorage.setItem('omg_review', JSON.stringify(v)); } catch (e) { } };
+function revDone() { revSet({ done: Date.now() }); revClose(); }
+function revLater() { revSet({ later: Date.now() }); revClose(); }
+function revClose() { const el = document.getElementById('revpop'); if (el) el.remove(); }
+function revMaybe(item) {
+  if (item) REV.views++;
+  if (REV.shown) return;
+  const v = revGet(); if (v.done || (v.later && Date.now() - v.later < 7 * 864e5)) return;
+  if (REV.views >= 3) return revShow();
+  if (!REV.t) REV.t = setTimeout(revShow, 25000);
+}
+function revShow() {
+  if (REV.shown || TOKEN || !isPublicRoute() || document.getElementById('revpop')) return;
+  REV.shown = true; clearTimeout(REV.t);
+  const d = document.createElement('div'); d.id = 'revpop'; d.className = 'revpop'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Rate us on Google');
+  d.innerHTML = `<button class="x" onclick="revLater()" aria-label="Close">${ic('x', 18)}</button>
+    <div class="row" style="gap:12px;align-items:center"><div class="logo" style="width:52px;height:52px"></div><div><b style="font-size:16px">Enjoying our collection?</b><div style="margin-top:4px">${starsHTML(5, 22)}</div></div></div>
+    <p class="small muted" style="margin:12px 0 14px">If you have rented or visited ${esc((PUB && PUB.shop.name) || 'OMG Rental')}, a quick Google review helps other Garba lovers find us. Thank you! 🙏</p>
+    <div class="row" style="gap:8px"><a class="btn btn-gold grow" target="_blank" rel="noopener" href="${SHOP.review}" onclick="revDone()">${ic('star', 18)} Write a review</a><button class="btn" onclick="revLater()">Maybe later</button></div>`;
+  document.body.appendChild(d);
+}
 const PUBQ = { type: 'all', q: '', date: '', month: null, ph: 0, code: null };
 const isPublicRoute = () => /^#\/(item\/|catalog)/.test(location.hash);
 async function renderPublic() {
@@ -3457,13 +3531,14 @@ async function renderPublic() {
   }
   if (TOKEN || !isPublicRoute()) return;   // navigated away while loading
   const m = location.hash.match(/^#\/item\/([A-Za-z0-9-]+)/);
-  P.innerHTML = pubTop() + (m ? pubItem(m[1].toUpperCase()) : pubList());
+  P.innerHTML = pubTop() + (m ? pubItem(m[1].toUpperCase()) : pubList()) + pubStore();
+  revMaybe(!!m);
 }
 const pubHex = it => /^#[0-9a-f]{6}$/i.test(it.hex) ? it.hex : (COLOURS[it.colour] || '#b04a8a');
 const pubType = it => (TYPES[it.type] || { name: it.type }).name;
 const PUB_MODE = { rent: 'On rent', both: 'On rent · also for sale', sale: 'For sale' };
 function pubTop() {
-  return `<div class="ptop"><a href="#/catalog" class="row" style="gap:10px"><div class="logo" style="width:42px;height:42px;font-size:13px">OMG</div><div><b>${esc(PUB.shop.name || 'OMG Rental')}</b><div class="tiny muted">${esc(PUB.shop.city || '')}${PUB.shop.city ? ' · ' : ''}Catalogue</div></div></a><span class="grow"></span><button class="btn btn-sm" onclick="go('#/dashboard')">${ic('lock', 16)} Staff login</button></div>`;
+  return `<div class="ptop"><a href="#/catalog" class="row" style="gap:10px"><div class="logo" style="width:42px;height:42px;font-size:13px">OMG</div><div><b>${esc(PUB.shop.name || 'OMG Rental')}</b><div class="tiny muted">${esc(PUB.shop.city || '')}${PUB.shop.city ? ' · ' : ''}Catalogue</div></div></a><span class="grow"></span><a class="btn btn-sm btn-primary pvis" target="_blank" rel="noopener" href="${SHOP.maps}">${ic('pin', 16)} Visit store</a><button class="btn btn-sm btn-ghost pstaff" onclick="revClose();go('#/dashboard')" aria-label="Staff login">${ic('lock', 16)}<span>Staff login</span></button></div>`;
 }
 /* Can this piece be rented for an event on this day? (pickup that day, return next day) */
 function pubFree(code, day) {
@@ -3521,8 +3596,11 @@ function pubItem(code) {
   const status = it.status === 'repair' ? '<span class="pill st-repair">Not available right now</span>' : it.mode === 'sale' ? '<span class="pill">For sale</span>' : pubFree(code, defaultEvent()) ? '<span class="pill st-available">Available today</span>' : '<span class="pill st-lost">Booked today</span>';
   return `<div class="row" style="margin-bottom:12px"><a class="btn btn-ghost btn-sm" href="#/catalog">${ic('left', 16)} Full collection</a></div>
   <div class="pitem">
-    <div class="pgal"><div class="main" style="${tileBg(hex)}">${ps.length ? `<img src="${esc(ps[ph])}" alt="${esc(it.name)}">` : art(it.type, hex, 240)}</div>
-      ${ps.length > 1 ? `<div class="ths">${ps.map((u, i) => `<img src="${esc(u)}" alt="" class="${i === ph ? 'on' : ''}" onclick="PUBQ.ph=${i};renderPublic()">`).join('')}</div>` : ''}</div>
+    ${ps.length > 1 ? `<div class="pgal"><div class="slides" id="pslides" onscroll="pgalSync()" style="${tileBg(hex)}">${ps.map((u, i) => `<img src="${esc(u)}" alt="${esc(it.name)} photo ${i + 1}" ${i ? 'loading="lazy"' : ''}>`).join('')}</div>
+        <span class="cnt" id="pcnt">1 / ${ps.length}</span><button class="nav l" onclick="pgalGo(-1)" aria-label="Previous photo">${ic('left', 20)}</button><button class="nav r" onclick="pgalGo(1)" aria-label="Next photo">${ic('right', 20)}</button>
+        <div class="dots">${ps.map((u, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
+        <div class="ths">${ps.map((u, i) => `<img src="${esc(u)}" alt="" class="${i ? '' : 'on'}" onclick="pgalTo(${i})">`).join('')}</div></div>`
+      : `<div class="pgal"><div class="main" style="${tileBg(hex)}">${ps.length ? `<img src="${esc(ps[0])}" alt="${esc(it.name)}">` : art(it.type, hex, 240)}</div></div>`}
     <div class="stack s16">
       <div><div class="row wrap" style="gap:6px">${status}<span class="pill"><span class="mono">${it.code}</span></span></div>
         <h1 class="pg" style="font-size:26px;margin-top:10px">${esc(it.name)}</h1><div class="muted small" style="margin-top:4px">${esc(pubType(it))}</div></div>
@@ -3534,6 +3612,16 @@ function pubItem(code) {
       <div class="banner info">${ic('hanger')} <span>Like this piece? Visit <b>${esc(PUB.shop.name || 'OMG Rental')}</b>${PUB.shop.city ? ', ' + esc(PUB.shop.city) : ''} and ask for code <b class="mono">${it.code}</b>.</span></div>
       <div class="row wrap" style="gap:8px"><a class="btn btn-lg btn-wa grow" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`${it.name} (${it.code}) at ${PUB.shop.name || 'OMG Rental'}${PUB.shop.city ? ', ' + PUB.shop.city : ''}. See photos and free dates: ${tagText(it.code)}`)}">${ic('wa', 18)} Share on WhatsApp</a>${navigator.share ? `<button class="btn btn-lg" onclick="pubShare('${it.code}')">Share…</button>` : ''}</div>
     </div></div>`;
+}
+/* photo gallery on the public item page: swipe on phones, arrows / thumbnails on computers */
+function pgalTo(i) { const s = document.getElementById('pslides'); if (s) s.scrollTo({ left: i * s.clientWidth, behavior: 'smooth' }); }
+function pgalGo(d) { const s = document.getElementById('pslides'); if (!s) return; const n = s.children.length, i = Math.round(s.scrollLeft / s.clientWidth); pgalTo((i + d + n) % n); }
+function pgalSync() {
+  const s = document.getElementById('pslides'); if (!s) return;
+  const i = Math.round(s.scrollLeft / s.clientWidth), g = s.parentNode;
+  const c = document.getElementById('pcnt'); if (c) c.textContent = (i + 1) + ' / ' + s.children.length;
+  g.querySelectorAll('.dots i').forEach((x, k) => x.classList.toggle('on', k === i));
+  g.querySelectorAll('.ths img').forEach((x, k) => x.classList.toggle('on', k === i));
 }
 function pubShare(code) {
   const it = PUB.items.find(i => i.code === code); if (!it) return;
@@ -3550,7 +3638,7 @@ const EMAIL_STATUS = { sent: ['st-available', 'Sent'], pending: ['st-reserved', 
 const emailPill = e => { const [c, l] = EMAIL_STATUS[e.status] || ['', e.status]; return `<span class="pill ${c}" title="${esc(e.error || '')}">${l}</span>`; };
 const EMS = { st: null, loading: false, err: '', filter: 'all' };
 const EMAIL_TIMES = [['pickupTomorrowTime', 'Pickup reminder (day before) at', '18:00'], ['pickupTodayTime', 'Pickup day reminder at', '09:00'], ['paymentDueTime', 'Balance reminder (day before pickup) at', '11:00'], ['returnTomorrowTime', 'Return reminder (day before) at', '18:00'], ['returnTodayTime', 'Return due today at', '08:00'], ['overdue1Time', 'Overdue — 1st reminder at', '12:15'], ['overdue2Time', 'Overdue — 2nd reminder at', '15:00'], ['overdue3Time', 'Overdue — final reminder at', '19:00'], ['staffDigestTime', 'Daily staff summary at', '08:30']];
-const EMAIL_FIELDS = [['senderName', 'Sender name', 'OMG Rental', 'text'], ['senderEmail', 'Sender email (your business Gmail)', 'e.g. omgrental@gmail.com', 'email'], ['replyTo', 'Reply-to email', 'Where customer replies go', 'email'], ['staffEmail', 'Staff email (daily summary)', 'Owner / manager email', 'email'], ['businessPhone', 'Business phone', '7610544284', 'tel'], ['businessAddress', 'Business address', 'Shop address, Indore', 'text'], ['mapsLink', 'Google Maps link (Directions button)', 'https://maps.app.goo.gl/…', 'url'], ['reviewLink', 'Google review link', 'https://g.page/r/…/review', 'url'], ['feedbackEmail', 'Feedback email', 'Where "Send feedback" goes', 'email'], ['logoUrl', 'Logo image link', 'https://omgrental.netlify.app/omg-logo.jpg', 'url']];
+const EMAIL_FIELDS = [['senderName', 'Sender name', 'OMG Rental', 'text'], ['senderEmail', 'Sender email (your business Gmail)', 'e.g. omgrental@gmail.com', 'email'], ['replyTo', 'Reply-to email', 'Where customer replies go', 'email'], ['staffEmail', 'Staff email (daily summary)', 'Owner / manager email', 'email'], ['businessPhone', 'Business phone', '7610544284', 'tel'], ['businessAddress', 'Business address', 'Shop address, Indore', 'text'], ['mapsLink', 'Google Maps link (Directions button)', SHOP.maps, 'url'], ['reviewLink', 'Google review link', SHOP.review, 'url'], ['feedbackEmail', 'Feedback email', 'Where "Send feedback" goes', 'email'], ['logoUrl', 'Logo image link', 'https://omgrental.netlify.app/omg-logo.jpg', 'url']];
 const emS = () => S().email || {};
 const emTpl = () => S().emailTemplates || {};
 function setEmailSetting(k, v) {

@@ -413,7 +413,7 @@ function json(o) { return ContentService.createTextOutput(JSON.stringify(o)).set
 var TZ = 'Asia/Kolkata';
 var EMAIL_DEFAULTS = {
   enabled: true, senderName: 'OMG Rental', senderEmail: '', replyTo: '', staffEmail: '',
-  businessPhone: '7610544284', businessAddress: 'Indore, Madhya Pradesh', mapsLink: '', reviewLink: '', feedbackEmail: '',
+  businessPhone: '7610544284', businessAddress: 'Indore, Madhya Pradesh', mapsLink: 'https://maps.app.goo.gl/fv9qNEScbicrFLtj6', reviewLink: 'https://g.page/r/CYCeMAhZNQ2QEBM/review', feedbackEmail: '',
   logoUrl: 'https://omgrental.netlify.app/omg-logo.jpg', appUrl: 'https://omgrental.netlify.app/',
   pickupTomorrowTime: '18:00', pickupTodayTime: '09:00', paymentDueTime: '11:00',
   returnTomorrowTime: '18:00', returnTodayTime: '08:00',
@@ -469,11 +469,11 @@ var TEMPLATES = {
   return_received: { name: 'Return received', trigger: 'Items received, inspection pending', kind: 'event',
     subject: 'We have received your OMG Rental items — {{booking_number}}', heading: 'We have received your items',
     intro: 'Hi {{customer_name}}, thank you for returning your outfit. Your items have been received and are currently undergoing inspection. We will email you the final settlement shortly.',
-    blocks: ['booking', 'items'], cta: ['call'] },
+    blocks: ['booking', 'items'], cta: ['call', 'review'] },
   settlement: { name: 'Return settlement + deposit refund', trigger: 'Return closed after inspection', kind: 'event', pdf: true,
     subject: 'Your OMG Rental return is complete — Booking {{booking_number}}', heading: 'Return complete',
     intro: 'Hi {{customer_name}}, your return has been inspected and settled. Here is the full breakdown of your deposit. The detailed receipt is attached.',
-    blocks: ['booking', 'inspection', 'settle'], cta: ['call'] },
+    blocks: ['booking', 'inspection', 'settle'], cta: ['review', 'call'] },
   cancellation: { name: 'Booking cancellation', trigger: 'A booking is cancelled', kind: 'event',
     subject: 'Booking cancelled — {{booking_number}}', heading: 'Your booking has been cancelled',
     intro: 'Hi {{customer_name}}, your booking {{booking_number}} has been cancelled. If you have any question about a refund, please call us.',
@@ -481,7 +481,7 @@ var TEMPLATES = {
   sale_receipt: { name: 'Purchase receipt', trigger: 'An item is sold to a customer', kind: 'event', pdf: true,
     subject: 'Thank you for your purchase — OMG Rental', heading: 'Thank you for your purchase',
     intro: 'Hi {{customer_name}}, thank you for shopping with OMG Rental! Your receipt is attached.',
-    blocks: ['sale'], cta: ['call', 'whatsapp'] },
+    blocks: ['sale'], cta: ['review', 'call', 'whatsapp'] },
   review_request: { name: 'Review request', trigger: 'After the return is closed (delay in hours)', kind: 'auto',
     subject: 'How was your OMG Rental experience?', heading: 'How was your experience?',
     intro: 'Hi {{customer_name}}, thank you for renting with us! We would love to hear how it went. It takes less than a minute.',
@@ -661,6 +661,7 @@ function renderEmail(key, ctx, em, meta, over) {
   var cta = (t.cta || []).map(function (c) {
     if (c === 'call' && phone) return eBtn('tel:+91' + phone.slice(-10), eIcon(em, 'call-white') + 'Call ' + escH(em.businessPhone), BR.maroon);
     if (c === 'whatsapp' && phone) return eBtn('https://wa.me/91' + phone.slice(-10) + '?text=' + encodeURIComponent('Hi OMG Rental, about booking ' + v.booking_number), eIcon(em, 'wa-white') + 'WhatsApp us', '#1f9d55');
+    if (c === 'review' && em.reviewLink) return eBtn(em.reviewLink, '<span style="color:#3b2206">&#9733;&#9733;&#9733;&#9733;&#9733;</span>&nbsp; Rate us on Google', '#f2b01e', '#3b2206');
     if (c === 'directions' && em.mapsLink) return eBtn(em.mapsLink, eIcon(em, 'pin-maroon') + 'Get directions', '#ffffff', BR.maroon);
     return '';
   }).join('');
@@ -684,7 +685,9 @@ function renderEmail(key, ctx, em, meta, over) {
     '<tr><td bgcolor="' + BR.cream + '" style="background:' + BR.cream + ';padding:20px 28px;border-top:1px solid ' + BR.line + '">' +
     '<div style="font:700 14px/1.5 Arial,Helvetica,sans-serif;color:' + BR.ink + '">OMG Rental · linked with OMG Salon</div>' +
     '<div style="font:13px/1.6 Arial,Helvetica,sans-serif;color:' + BR.muted + '">' + escH(em.businessAddress) + '<br>' + eIcon(em, 'call-maroon', 14) + '<a href="tel:+91' + phone.slice(-10) + '" style="color:' + BR.maroon + ';text-decoration:none;font-weight:700">' + escH(em.businessPhone) + '</a>' +
-    (em.appUrl ? ' · <a href="' + escH(em.appUrl) + '#/catalog" style="color:' + BR.maroon + '">See our collection</a>' : '') + '</div>' +
+    (em.appUrl ? ' · <a href="' + escH(em.appUrl) + '#/catalog" style="color:' + BR.maroon + '">See our collection</a>' : '') +
+    (em.mapsLink ? '<br>' + eIcon(em, 'pin-maroon', 14) + '<a href="' + escH(em.mapsLink) + '" style="color:' + BR.maroon + '">Find our store</a>' : '') +
+    (em.reviewLink ? ' · <a href="' + escH(em.reviewLink) + '" style="color:#b7791f;font-weight:700;text-decoration:none">&#9733; Rate us on Google</a>' : '') + '</div>' +
     '<div style="font:11px/1.5 Arial,Helvetica,sans-serif;color:#a3949a;margin-top:10px">You are receiving this email about your booking with OMG Rental.' + (unsub ? ' <a href="' + escH(unsub) + '" style="color:#a3949a">Stop these emails</a>.' : '') + '</div></td></tr>' +
     '</table></td></tr></table></body></html>';
   var text = subject + '\n\n' + fillVars(t.intro, v, false) + '\n\nBooking: ' + v.booking_number + '\nCall: ' + em.businessPhone + '\n' + em.businessAddress;
