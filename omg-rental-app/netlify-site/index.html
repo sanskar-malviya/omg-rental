@@ -668,7 +668,9 @@ body.public-mode .page{max-width:1160px;margin:0 auto;padding-top:0}
 .pnights{margin:16px 2px 6px}
 .pnights>.row b{display:flex;align-items:center;gap:6px;color:var(--brand-deep)}
 .pdate{position:relative;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--brand);background:rgba(255,255,255,.7);border:1px solid rgba(176,38,94,.2);border-radius:999px;padding:6px 12px;cursor:pointer}
-.pdate input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.pnights>.row{position:relative}
+.pdatein{position:absolute;right:0;top:100%;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none}
+.pdatein.show{position:static;width:auto;height:40px;opacity:1;pointer-events:auto;border:1px solid var(--line);border-radius:12px;padding:0 10px;margin-top:8px;background:#fff}
 .nights{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 6px;scrollbar-width:none}
 .night{flex:none;width:74px;border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:18px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;box-shadow:0 4px 12px rgba(122,31,75,.08);transition:.2s}
 .night small{font-size:11px;font-weight:800;color:var(--brand-2);text-transform:uppercase;letter-spacing:.3px}
@@ -3712,7 +3714,7 @@ function pubFiltered() {
 function pubCard(it, i) {
   const ps = PUB.photos[it.code] || [], day = pubDay(), hex = pubHex(it);
   const free = pubFree(it.code, day || defaultEvent());
-  const badge = it.status === 'repair' ? '<span class="pbadge off">Resting</span>' : it.mode === 'sale' ? '<span class="pbadge sale">For sale</span>' : free ? `<span class="pbadge ok">${day ? 'Free ' + fDateS(day) : 'Free today'}</span>` : `<span class="pbadge off">Booked${day ? '' : ' today'}</span>`;
+  const badge = it.status === 'repair' ? '<span class="pbadge off">Resting</span>' : it.mode === 'sale' ? '<span class="pbadge sale">For sale</span>' : free ? `<span class="pbadge ok">${day ? 'Available ' + fDateS(day) : 'Available today'}</span>` : `<span class="pbadge off">Booked${day ? '' : ' today'}</span>`;
   return `<a class="pcard glass" style="--d:${Math.min(i, 12) * 45}ms" href="#/item/${it.code}"><div class="im" style="${tileBg(hex)}">${ps[0] ? `<img src="${esc(ps[0])}" alt="${esc(it.name)}" loading="lazy">` : `<div class="art">${art(it.type, hex, 120)}</div>`}${badge}${ps.length > 1 ? `<span class="phc">${ic('eye', 12)} ${ps.length}</span>` : ''}<span class="ptype">${esc((TYPES[it.type] || { short: it.type }).short)}</span></div>
     <div class="b"><div class="nm">${esc(it.name)}</div><div class="meta"><i style="background:${hex}"></i><span>${esc(it.colour || '')}</span>${it.size ? '<span class="dotsep">·</span><span>' + esc(it.size) + '</span>' : ''}</div><div class="code mono">${it.code}</div></div></a>`;
 }
@@ -3720,12 +3722,12 @@ function pubResults() {
   const list = pubFiltered(), day = pubDay();
   const act = [];
   if (PUBQ.type !== 'all') act.push(['type', (TYPES[PUBQ.type] || {}).short || PUBQ.type]);
-  if (day) act.push(['date', 'Free on ' + fDateS(day)]);
+  if (day) act.push(['date', 'Available ' + fDateS(day)]);
   if (PUBQ.colour) act.push(['colour', PUBQ.colour]);
   if (PUBQ.size) act.push(['size', PUBQ.size]);
-  if (PUBQ.free && !day) act.push(['free', 'Free today']);
+  if (PUBQ.free && !day) act.push(['free', 'Available today']);
   if (PUBQ.q.trim()) act.push(['q', '“' + PUBQ.q.trim() + '”']);
-  return `<div class="pres row wrap"><b>${list.length}</b><span class="muted">piece${list.length === 1 ? '' : 's'}${day ? ' free for ' + fDate(day) : ''}</span>${act.map(([k, l]) => `<button class="pact" onclick="pubClear('${k}')">${esc(l)} ${ic('x', 12, 2.5)}</button>`).join('')}${act.length > 1 ? '<button class="pact clear" onclick="pubClear(\'all\')">Clear all</button>' : ''}</div>
+  return `<div class="pres row wrap"><b>${list.length}</b><span class="muted">piece${list.length === 1 ? '' : 's'}${day ? ' available for ' + fDate(day) : ''}</span>${act.map(([k, l]) => `<button class="pact" onclick="pubClear('${k}')">${esc(l)} ${ic('x', 12, 2.5)}</button>`).join('')}${act.length > 1 ? '<button class="pact clear" onclick="pubClear(\'all\')">Clear all</button>' : ''}</div>
     ${list.length ? `<div class="pcards">${list.map(pubCard).join('')}</div>` : `<div class="pempty glass"><div class="art">${art(PUBQ.type !== 'all' ? PUBQ.type : 'GC', '#c2185b', 90)}</div><h3>Nothing matches yet</h3><p class="muted">Try another colour, size or night, or ask us on WhatsApp. New pieces arrive every week.</p><button class="btn btn-primary" onclick="pubClear('all')">Show everything</button></div>`}`;
 }
 function pubClear(k) {
@@ -3735,6 +3737,12 @@ function pubClear(k) {
 }
 let PUBT = null;
 function pubSearch(v) { PUBQ.q = v; clearTimeout(PUBT); PUBT = setTimeout(() => { const r = document.getElementById('pres'); if (r) r.innerHTML = pubResults(); }, 120); }
+/* "Other date": open the phone's date picker; older browsers show the date box instead */
+function pubPickDate() {
+  const el = document.getElementById('pdatein'); if (!el) return;
+  try { if (el.showPicker) { el.showPicker(); return; } } catch (e) { }
+  el.classList.add('show'); el.focus(); el.click();
+}
 function pubSet(k, v) { PUBQ[k] = PUBQ[k] === v && k !== 'sort' ? (k === 'type' ? 'all' : '') : v; renderPublic(); }
 function pubList() {
   const nights = festivalNights().filter(f => f.d >= sod(new Date())), today = defaultEvent();
@@ -3744,8 +3752,8 @@ function pubList() {
   return `<section class="phero"><div class="mandala" aria-hidden="true"></div><div class="sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <div class="kick">✦ ${esc(S().festivalName || 'Navratri')} ${new Date().getFullYear()} · Garba on rent</div>
       <h1>Twirl in something <em>unforgettable</em></h1>
-      <p>Chaniya-choli, dupattas and jewellery for every Garba night. Find your look, check the free dates, then visit the store to try it on.</p>
-      <div class="pstats"><div><b>${PUB.items.length}</b><span>pieces</span></div><div><b>${freeNow}</b><span>free today</span></div><div><b>${pubColours().length}</b><span>colours</span></div></div>
+      <p>Chaniya-choli, dupattas and jewellery for every Garba night. Find your look, check which dates are available, then visit the store to try it on.</p>
+      <div class="pstats"><div><b>${PUB.items.length}</b><span>pieces</span></div><div><b>${freeNow}</b><span>available today</span></div><div><b>${pubColours().length}</b><span>colours</span></div></div>
       <a class="pshare" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`${PUB.shop.name || 'OMG Rental'} Garba collection: ${location.origin + location.pathname}#/catalog`)}">${ic('wa', 18)} Share collection</a></section>
     <div class="psearch glass" id="psearch">
       <div class="sbox"><span class="si">${ic('search', 20)}</span><input id="pq" type="search" enterkeyhint="search" autocomplete="off" placeholder="Search red, mirror-work, dupatta…" value="${esc(PUBQ.q)}" oninput="pubSearch(this.value)">
@@ -3755,10 +3763,10 @@ function pubList() {
         <div class="lbl">Colour</div><div class="swatches">${pubColours().map(([n, h]) => `<button class="sw ${PUBQ.colour === n ? 'on' : ''}" style="--c:${h}" title="${esc(n)}" onclick="pubSet('colour',${esc(JSON.stringify(n))})"><i></i><span>${esc(n)}</span></button>`).join('')}</div>
         <div class="lbl">Size</div><div class="chips scroll">${pubSizes().map(z => `<button class="chip ${PUBQ.size === z ? 'on' : ''}" onclick="pubSet('size',${esc(JSON.stringify(z))})">${esc(z)}</button>`).join('')}</div>
         <div class="lbl">Sort by</div><div class="seg">${[['free', 'Available first'], ['new', 'Newest'], ['az', 'A–Z'], ['colour', 'Colour']].map(([k, l]) => `<button class="${PUBQ.sort === k ? 'on' : ''}" onclick="pubSet('sort','${k}')">${l}</button>`).join('')}</div>
-        <label class="ptog"><input type="checkbox" ${PUBQ.free ? 'checked' : ''} onchange="PUBQ.free=this.checked;renderPublic()"><span></span>Only show pieces free today</label>
+        <label class="ptog"><input type="checkbox" ${PUBQ.free ? 'checked' : ''} onchange="PUBQ.free=this.checked;renderPublic()"><span></span>Only show pieces available today</label>
         <div class="row" style="gap:8px;margin-top:6px"><button class="btn btn-sm" onclick="pubClear('all');PUBQ.sort='free'">Reset</button><span class="grow"></span><button class="btn btn-sm btn-primary" onclick="PUBQ.filt=false;renderPublic()">Done</button></div></div>` : ''}
     </div>
-    <div class="pnights"><div class="row between"><b>${ic('calendar', 16)} Pick your Garba night</b><label class="pdate">${ic('calendar', 14)}<span>${PUBQ.date && !nights.some(f => isoDay(f.d) === PUBQ.date) ? fDateS(parseIso(PUBQ.date)) : 'Other date'}</span><input type="date" value="${PUBQ.date}" onchange="PUBQ.date=this.value;renderPublic()" aria-label="Pick a date"></label></div>
+    <div class="pnights"><div class="row between"><b>${ic('calendar', 16)} Pick your Garba night</b><button class="pdate" onclick="pubPickDate()">${ic('calendar', 14)}<span>${PUBQ.date && !nights.some(f => isoDay(f.d) === PUBQ.date) ? fDateS(parseIso(PUBQ.date)) : 'Other date'}</span></button><input type="date" id="pdatein" class="pdatein" min="${isoDay(sod(new Date()))}" value="${PUBQ.date}" onchange="if(this.value){PUBQ.date=this.value;renderPublic()}" aria-label="Pick a date"></div>
       <div class="nights scroll"><button class="night ${!PUBQ.date ? 'on' : ''}" onclick="PUBQ.date='';renderPublic()"><small>Any</small><b>✦</b><span>all dates</span></button>${(nights.length ? nights : [0, 1, 2, 3, 4, 5, 6].map(k => ({ d: new Date(sod(new Date()).getTime() + k * 864e5) }))).map(f => { const v = isoDay(f.d); return `<button class="night ${PUBQ.date === v ? 'on' : ''}" onclick="PUBQ.date=PUBQ.date==='${v}'?'':'${v}';renderPublic()"><small>${f.n ? 'Night ' + f.n : f.d.toLocaleDateString('en-IN', { weekday: 'short' })}</small><b>${f.d.getDate()}</b><span>${f.d.toLocaleDateString('en-IN', { month: 'short' })}${f.n ? ' · ' + f.d.toLocaleDateString('en-IN', { weekday: 'short' }) : ''}</span></button>`; }).join('')}</div></div>
     <div id="pres">${pubResults()}</div>`;
 }
@@ -3801,17 +3809,17 @@ function pubItem(code) {
       <div class="pinfo glass"><div class="row wrap" style="gap:6px">${status}<span class="pbadge code mono">${it.code}</span><span class="pbadge type">${esc(pubType(it))}</span></div>
         <h1 class="pname">${esc(it.name)}</h1>
         <div class="meta big"><i style="background:${hex}"></i><span>${esc(it.colour || '')}</span>${it.size ? '<span class="dotsep">·</span><span>' + esc(it.size) + '</span>' : ''}${it.style ? '<span class="dotsep">·</span><span>' + esc(it.style) + '</span>' : ''}</div>
-        ${nights.length && it.mode !== 'sale' ? `<div class="pfree"><b>${freeNights}</b> of ${nights.length} ${esc(S().festivalName || 'Navratri')} nights still free</div>` : ''}</div>
+        ${nights.length && it.mode !== 'sale' ? `<div class="pfree"><b>${freeNights}</b> of ${nights.length} ${esc(S().festivalName || 'Navratri')} nights still available</div>` : ''}</div>
       <div class="card pad summary glass"><h3 style="margin-bottom:6px">Details</h3>
         ${row('Type', esc(pubType(it)))}${row('Colour', `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${hex};vertical-align:-1px;margin-right:6px"></span>${esc(it.colour || '')}`)}${row('Size', esc(it.size))}${row('Design', esc(it.style))}${row('Collection', esc(it.collection || ''))}${row('Available', PUB_MODE[it.mode] || '')}</div>
       ${it.mode === 'sale' ? '' : `<div class="card pad glass"><h3 style="margin-bottom:4px">Availability</h3><p class="small muted" style="margin:0 0 12px">Pick up on your event day from ${fTime(atTime(new Date(), S().pickupStart))}, return the next day by ${fTime(atTime(new Date(), S().returnDeadline))}.</p>
         ${nights.length ? `<div class="lbl">${esc(S().festivalName || 'Festival')}</div><div class="chips scroll" style="margin-bottom:14px">${nights.map(f => `<span class="chip ${pubFree(code, f.d) ? '' : 'off'}" style="${pubFree(code, f.d) ? 'background:var(--good-soft);color:var(--good)' : 'background:var(--danger-soft);color:var(--danger);text-decoration:line-through'}">Night ${f.n} · ${fDateS(f.d)}</span>`).join('')}</div>` : ''}
         ${pubCal(code)}</div>`}
       <div class="pnote glass">${ic('hanger')} <span>Like this piece? Visit <b>${esc(PUB.shop.name || 'OMG Rental')}</b> and ask for code <b class="mono">${it.code}</b>, or message us to check your date.</span></div>
-      <div class="row wrap" style="gap:8px"><a class="btn btn-lg glass grow" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`${it.name} (${it.code}) at ${PUB.shop.name || 'OMG Rental'}. See photos and free dates: ${tagText(it.code)}`)}">${ic('wa', 18)} Share with a friend</a>${navigator.share ? `<button class="btn btn-lg glass" onclick="pubShare('${it.code}')">Share…</button>` : ''}</div>
+      <div class="row wrap" style="gap:8px"><a class="btn btn-lg glass grow" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`${it.name} (${it.code}) at ${PUB.shop.name || 'OMG Rental'}. See photos and available dates: ${tagText(it.code)}`)}">${ic('wa', 18)} Share with a friend</a>${navigator.share ? `<button class="btn btn-lg glass" onclick="pubShare('${it.code}')">Share…</button>` : ''}</div>
     </div></div>
   ${similar.length ? `<section class="psim"><h2>You may also like</h2><div class="pcards row-scroll">${similar.map(pubCard).join('')}</div></section>` : ''}
-  <div class="pcta glass"><a class="btn btn-lg btn-wa grow" target="_blank" rel="noopener" href="${ask}">${ic('wa', 20)} Ask if it's free</a><a class="btn btn-lg btn-primary" target="_blank" rel="noopener" href="${SHOP.maps}">${ic('pin', 20)} Visit</a></div>`;
+  <div class="pcta glass"><a class="btn btn-lg btn-wa grow" target="_blank" rel="noopener" href="${ask}">${ic('wa', 20)} Check availability</a><a class="btn btn-lg btn-primary" target="_blank" rel="noopener" href="${SHOP.maps}">${ic('pin', 20)} Visit</a></div>`;
 }
 /* photo gallery on the public item page: swipe on phones, arrows / thumbnails on computers */
 function pgalTo(i) { const s = document.getElementById('pslides'); if (s) s.scrollTo({ left: i * s.clientWidth, behavior: 'smooth' }); }
