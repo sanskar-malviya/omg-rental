@@ -151,20 +151,23 @@ function resetData(user, pin) {
   return { ok: true };
 }
 
-/* ============ PHOTOS → GitHub (public photos repo) ============
+/* ============ PHOTOS → GitHub ============
+   Photos go to the "photos" branch of the (public) app repository, so they never
+   trigger a Netlify rebuild of the main branch.
    Apps Script → Project Settings → Script Properties:
-     GITHUB_TOKEN  = fine-grained token with "Contents: Read and write" on the photos repo only
-     GITHUB_REPO   = owner/repo   e.g. sanskar-malviya/omg-rental-photos
-     GITHUB_BRANCH = main          (optional)
+     GITHUB_TOKEN  = fine-grained token with "Contents: Read and write" on this repo only  (required)
+     GITHUB_REPO   = owner/repo      (optional, default below)
+     GITHUB_BRANCH = branch name     (optional, default "photos")
    The token never leaves Apps Script. The app sends an already-compressed JPEG. */
+var DEFAULT_PHOTO_REPO = 'sanskar-malviya/omg-rental';
+var DEFAULT_PHOTO_BRANCH = 'photos';
 function photosEnabled() {
-  var P = PropertiesService.getScriptProperties();
-  return !!(P.getProperty('GITHUB_TOKEN') && P.getProperty('GITHUB_REPO'));
+  return !!PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
 }
 function uploadPhoto(user, req) {
   var P = PropertiesService.getScriptProperties();
-  var token = P.getProperty('GITHUB_TOKEN'), repo = P.getProperty('GITHUB_REPO'), branch = P.getProperty('GITHUB_BRANCH') || 'main';
-  if (!token || !repo) fail('Photo storage is not set up yet — add GITHUB_TOKEN and GITHUB_REPO in Apps Script → Project Settings → Script Properties', 'photos_off');
+  var token = P.getProperty('GITHUB_TOKEN'), repo = P.getProperty('GITHUB_REPO') || DEFAULT_PHOTO_REPO, branch = P.getProperty('GITHUB_BRANCH') || DEFAULT_PHOTO_BRANCH;
+  if (!token) fail('Photo storage is not set up yet — add GITHUB_TOKEN in Apps Script → Project Settings → Script Properties', 'photos_off');
   var data = String(req.data || '');
   if (!data || !/^[A-Za-z0-9+\/=]+$/.test(data)) fail('Invalid image data');
   if (data.length > 2800000) fail('Image too large (max ~2 MB after compression)');

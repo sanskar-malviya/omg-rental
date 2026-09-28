@@ -50,21 +50,30 @@ If you change `Code.gs`: **Deploy → Manage deployments → Edit (pencil) → V
 - **Limits:** Google Sheets suits one shop with a few tablets and a few thousand bookings. Each save takes 1–3 seconds. If you grow to multiple branches or many staff, move to a proper database. The app's data layer (`toTables` / `fromTables` / `api`) is the only part that needs to change.
 
 ## Photos on GitHub (item photos + damage photos)
-Photos are compressed on the tablet (about 1280 px, 150–280 KB). They are uploaded by the Apps Script to a **separate public GitHub repository**, and the raw URL is saved in the **Item_Photos** tab.
+Photos are compressed on the tablet (about 1280 px, 150–280 KB). The Apps Script uploads them to the **`photos` branch** of this repository (`sanskar-malviya/omg-rental`), and the raw URL is saved in the **Item_Photos** tab. Using a separate branch means uploads never trigger a Netlify rebuild and never mix with the code.
 
-1. **Create the photos repository:** https://github.com/new → name `omg-rental-photos` → **Public** → tick **Add a README** (it needs one commit) → Create.
-   - It must be public so the raw URLs work in the app. Keep your code repository private.
-   - Only upload item and damage photos. **Never upload ID proofs.**
-2. **Create a token:** GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token.
-   - Repository access: **Only select repositories → omg-rental-photos**
-   - Permissions → Repository permissions → **Contents: Read and write**
-   - Expiration: 1 year (set a reminder to renew it)
-   - Copy the token (starts with `github_pat_`).
-3. **Give it to Apps Script (not to the app):** Apps Script → ⚙ **Project Settings → Script Properties → Add script property**
-   - `GITHUB_TOKEN` = your token
-   - `GITHUB_REPO` = `sanskar-malviya/omg-rental-photos`
-   - `GITHUB_BRANCH` = `main` (optional)
-4. Paste the latest `Code.gs` → **Deploy → Manage deployments → ✏️ → New version → Deploy**.
-5. In the app: **Settings → Connection** should show *Photo storage (GitHub): connected ✓*. Open any item → **Photos → Add photo**.
+The repository is public, so photo links work, but anyone with a link can see that photo. Only upload item and damage photos. **Never upload customer ID proofs.**
 
-Files are stored as `items/<ITEM CODE>/…jpg` and `damage/<BOOKING NO>/<ITEM CODE>-…jpg`. "Remove" hides a photo in the app. The file stays in the repository history.
+### 1. Create a GitHub token (one time)
+1. Open https://github.com/settings/personal-access-tokens/new (GitHub → your photo → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token).
+2. **Token name:** `OMG Rental photos` · **Expiration:** 1 year (set a reminder to renew it).
+3. **Repository access:** *Only select repositories* → pick **omg-rental**.
+4. **Permissions → Repository permissions → Contents → Read and write.** Leave everything else as it is.
+5. Click **Generate token** and copy it (it starts with `github_pat_`). GitHub shows it only once.
+
+### 2. Put the token in Apps Script (never in the app or on GitHub)
+Apps Script → ⚙ **Project Settings** → scroll to **Script Properties** → **Add script property**:
+- Property: `GITHUB_TOKEN` · Value: your token → **Save script properties**
+
+(Optional: `GITHUB_REPO` and `GITHUB_BRANCH`, only if you ever want a different repository or branch. The defaults are `sanskar-malviya/omg-rental` and `photos`.)
+
+### 3. Update the script
+1. Paste the latest `Code.gs` → Save.
+2. Run **setup** once and click **Allow**. Google asks for a new permission, *“Connect to an external service”*, which is needed to talk to GitHub.
+3. **Deploy → Manage deployments → ✏️ → Version: New version → Deploy.**
+
+### 4. Check
+**Settings → Connection** shows *Photo storage (GitHub): connected ✓*. Open an item → **Photos → Add photo**. The file appears at `github.com/sanskar-malviya/omg-rental/tree/photos/items/<CODE>/`.
+
+Files are stored as `items/<ITEM CODE>/…jpg` and `damage/<BOOKING NO>/<ITEM CODE>-…jpg`. "Remove" hides a photo in the app. The file stays in the branch history.
+
