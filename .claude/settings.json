@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/sansk/AppData/Local/Temp/claude/c--Users-sansk-Desktop-omg-rental/8de00015-8801-4d4c-b8d9-dcd345bca00c/scratchpad/**)",
+      "Bash(node run_update.js)"
+    ]
+  }
+}

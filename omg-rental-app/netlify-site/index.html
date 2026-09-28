@@ -306,7 +306,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 .dcard.ret{background:var(--good-soft);border-color:#c5e5d3} .dcard.ret .k{color:var(--good)}
 .dcard.ret .t{color:#16553a}
 .evchips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
-.evchip{min-width:78px;min-height:70px;border-radius:14px;border:1px solid var(--line-2);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;line-height:1.1}
+.evchip{min-width:78px;min-height:84px;border-radius:14px;border:1px solid var(--line-2);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;line-height:1.1}
 .evchip small{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px}
 .evchip b{font-size:22px}
 .evchip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
@@ -514,6 +514,69 @@ body.login-mode .app{grid-template-columns:1fr}
 .upbtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .mini-ph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .mini-ph img{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line);cursor:pointer}
+.evchip.nav{border-color:#ecd09b;background:linear-gradient(180deg,#fff,var(--accent-soft))}
+.evchip .nb{font-size:10px;font-weight:800;color:var(--accent-2);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.evchip.on .nb{color:#ffd28a}
+.evsep{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--accent-2);text-transform:uppercase;letter-spacing:.6px;text-align:center;line-height:1.2;padding:0 4px;min-width:64px}
+/* ---------- Phone polish ---------- */
+@media (max-width:760px){
+  /* 16px inputs stop iPhone Safari from zooming in on focus */
+  .input,select.input,textarea.input,.top-search input,.evchip input{font-size:16px}
+  .input.big{font-size:20px}
+  /* touch targets */
+  .btn-sm{min-height:40px;padding:0 12px}
+  .icon-btn.btn-sm{width:40px}
+  .chip{min-height:42px}
+  .drow .acts{width:100%}
+  .drow .acts>.btn,.drow .acts>a.btn{flex:1 1 auto}
+  .pagehead{gap:10px}
+  .pagehead>.btn,.pagehead>a.btn{flex:1 1 auto}
+  .pagehead .chips{width:100%}
+  .modal-f{flex-wrap:wrap}
+  .modal-f>.btn,.modal-f>a.btn{flex:1 1 140px}
+  .overdue-card .oh .grow{flex-basis:100%}
+  .due-head .deadline{width:100%;justify-content:center}
+  .due-head>.btn{width:100%}
+  .hero-actions .btn{flex:1 1 140px}
+  .card-h{flex-wrap:wrap}
+  .stepper .st{min-width:auto;flex:0 0 auto;padding:8px 10px}
+  .stepper .st i{width:24px;height:24px;font-size:12px}
+  .split,.split-l{gap:14px}
+  .kv{font-size:13.5px}
+  .success-hero{padding:22px 14px}
+  .success-hero .row .btn{flex:1 1 100%}
+  .settle .line.total{font-size:19px}
+  .cond button{flex:1 1 calc(50% - 6px)}
+  .seg button{flex:1 1 auto}
+  .tabs button{padding:12px 10px}
+  .sync-l{display:none}
+  .arch .arr{transform:rotate(90deg);width:100%;padding:4px 0}
+  .arch .box{min-width:100%}
+  .legend{gap:8px 12px}
+  .igrid .icard .b .nm{font-size:13px}
+  /* tables become labelled cards (labels are filled from the header by labelTables()) */
+  .tbl.mcards thead{display:none}
+  .tbl.mcards,.tbl.mcards tbody,.tbl.mcards tfoot,.tbl.mcards tr{display:block;width:100%}
+  .tbl.mcards tr{padding:10px 14px;border-bottom:1px solid var(--line)}
+  .tbl.mcards tr:last-child{border-bottom:0}
+  .tbl.mcards td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;padding:4px 0;text-align:right;min-height:0}
+  .tbl.mcards td.r{text-align:right}
+  .tbl.mcards td[data-l]::before{content:attr(data-l);color:var(--muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;text-align:left;flex-shrink:0}
+  .tbl.mcards td:not([data-l]){justify-content:flex-start;text-align:left}
+  .tbl.mcards td>*:only-child{margin-left:auto}
+  .tbl.mcards td:not([data-l])>*:only-child{margin-left:0}
+  .tbl.mcards td .empty{width:100%}
+  .tbl.mcards tfoot tr{background:var(--surface-2)}
+  .tbl-wrap:has(.mcards){overflow-x:visible}
+}
+@media (max-width:380px){
+  .page{padding-left:12px;padding-right:12px}
+  .stats{gap:6px}
+  .stat .v{font-size:22px}
+  .igrid{gap:8px}
+  .bottomnav a{font-size:10px}
+  h1.pg{font-size:22px}
+}
 @media print{.side,.top,.bottomnav,.tour-fab,.tour{display:none!important}.app{display:block}}
 </style>
 </head>
@@ -688,6 +751,8 @@ function seedData() {
     depositMode: 'items', minDeposit: 500,
     damage: { minor: 300, stain: 250, repair: 400, major: 800 },
     managerPin: '1234',
+    festivalName: 'Navratri 2026', festivalStart: '2026-10-11', festivalNights: 9,   // Sharad Navratri 2026: 11–19 Oct (Dussehra 20 Oct)
+    staffMaxDiscountPct: 15,    // staff can give up to this % off with an offer price; more needs a manager PIN
   };
   const collections = [
     { id: 'garba', name: 'Garba 2026', status: 'active', desc: 'Navratri chaniya choli, dupatta & oxidised jewellery' },
@@ -733,7 +798,7 @@ function seedData() {
   set('J021', { colour: 'Kundan', style: 'Coin Necklace Set', mode: 'sale', rent: 0, sale: 899, deposit: 0, cost: 450, prev: { rentals: 0, revenue: 0 } });
   set('J005', { colour: 'Antique Gold', style: 'Kamarbandh Set', mode: 'sale', rent: 0, sale: 799, deposit: 0, cost: 380, status: 'sold', prev: { rentals: 0, revenue: 0 } });
   set('G030', { colour: 'Magenta', style: 'Gota Patti', mode: 'both', sale: 2299, status: 'sold' });
-  set('G017', { status: 'repair', repairCost: 180, notes: 'Waist drawstring torn — with tailor (Ramesh), expected 29 Sep.' });
+  set('G017', { status: 'repair', repairCost: 180, notes: 'Waist drawstring torn — with tailor (Ramesh), expected 28 Sep.' });
   set('C019', { status: 'repair', repairCost: 120, notes: 'Hook broken — sent to tailor 26 Sep.' });
   set('J019', { status: 'lost', notes: 'Not returned by customer in 2025 season. Deposit retained.' });
   it('G017').log.push({ at: D(2026, 9, 26, 17, 30), by: 'Meera — Manager', text: 'Sent to repair: waist drawstring torn (₹180 estimate)' });
@@ -789,14 +854,14 @@ function seedData() {
     ['09-26', 'Palak Mehta', ['G018', 'C030', 'J018'], { retAt: '10:20' }],
     ['09-26', 'Aarti Yadav', ['G006', 'C033', 'D010'], { pending: '10:15' }],
     ['09-26', 'Juhi Porwal', ['G025', 'C026', 'J017'], {}],
-    ['09-27', 'Muskan Garg', ['G022', 'C044', 'J026'], {}],
-    ['09-27', 'Vaishali Pandey', ['G023', 'C042', 'D014'], { voucher: 'NAVRATRI15' }],
-    ['09-28', 'Neha Sharma', ['G010', 'C035', 'D011', 'J022'], { depositLater: true, pkg: 'glam', noAutoReturn: true }],
-    ['09-28', 'Diksha Soni', ['G013', 'C036', 'J023'], { autoRet: '09:50' }],
-    ['09-28', 'Simran Bhatia', ['G016', 'C038', 'D012', 'J024'], { advance: 500 }],
-    ['09-28', 'Rashmi Tiwari', ['G019', 'C040', 'J025'], { autoRet: '10:05' }],
-    ['09-28', 'Khushi Malviya', ['G020', 'C041', 'D013'], {}],
-    ['09-28', 'Sneha Verma', ['G024', 'C045', 'J011'], {}],
+    ['09-26', 'Muskan Garg', ['G022', 'C044', 'J026'], {}],
+    ['09-26', 'Vaishali Pandey', ['G023', 'C042', 'D014'], { voucher: 'NAVRATRI15' }],
+    ['09-27', 'Neha Sharma', ['G010', 'C035', 'D011', 'J022'], { depositLater: true, pkg: 'glam', noAutoReturn: true }],
+    ['09-27', 'Diksha Soni', ['G013', 'C036', 'J023'], { autoRet: '09:50' }],
+    ['09-27', 'Simran Bhatia', ['G016', 'C038', 'D012', 'J024'], { advance: 500 }],
+    ['09-27', 'Rashmi Tiwari', ['G019', 'C040', 'J025'], { autoRet: '10:05' }],
+    ['09-27', 'Khushi Malviya', ['G020', 'C041', 'D013'], {}],
+    ['09-27', 'Sneha Verma', ['G024', 'C045', 'J011'], {}],
     ['09-29', 'Kavya Agrawal', ['G026', 'C001', 'J028'], {}],
     ['09-29', 'Ishita Gupta', ['G027', 'C002', 'D016'], {}],
     ['09-30', 'Priya Patel', ['G028', 'C003', 'J029'], {}],
@@ -888,27 +953,38 @@ function istate(it) {
 const isOverdue = b => b.status === 'picked' && NOW > b.returnBy;
 
 /* ---------- Dates helper: the Garba rhythm ----------
-   Pickup: day before the event, 2–3 PM · Return: day after the event, before 12 PM */
+   Pickup: same day as the event, 2–3 PM · Return: next day, before 12 PM */
 function datesForEvent(ev) {
-  return { eventDate: sod(ev), pickupAt: atTime(addDays(ev, -1), S().pickupStart), returnBy: atTime(addDays(ev, 1), S().returnDeadline) };
+  return { eventDate: sod(ev), pickupAt: atTime(ev, S().pickupStart), returnBy: atTime(addDays(ev, 1), S().returnDeadline) };
 }
 function defaultEvent() {
   const pickupEndToday = atTime(NOW, S().pickupEnd);
-  return addDays(sod(NOW), NOW < pickupEndToday ? 1 : 2);
+  return addDays(sod(NOW), NOW < pickupEndToday ? 0 : 1);   // today, or tomorrow once today's pickup window has passed
 }
+/* Festival (Navratri) nights from Settings, e.g. 11–19 Oct 2026 → [{d, n:1..9}] */
+function festivalNights() {
+  const s = S(); if (!s.festivalStart || !+s.festivalNights) return [];
+  const st = parseIso(s.festivalStart);
+  return [...Array(+s.festivalNights)].map((_, i) => ({ d: addDays(st, i), n: i + 1 }));
+}
+const festivalNightOf = d => (festivalNights().find(f => sameDay(f.d, d)) || {}).n || 0;
+/* Standard rental length in hours = pickup time on day 0 → return deadline next day (e.g. 2 PM → 12 PM = 22 h) */
+function standardHours() { const s = S(); const t = x => { const [h, m] = x.split(':').map(Number); return h + m / 60; }; return 24 - t(s.pickupStart) + t(s.returnDeadline); }
 
 /* ---------- Pricing ---------- */
-function quote({ lines, pkgs, pickupAt, returnBy, voucherCode, customerId }) {
+function quote({ lines, pkgs, pickupAt, returnBy, voucherCode, customerId, offerPrice }) {
   const itemsSum = sum(lines, l => item(l.code).rent);
   const base = sum(lines.filter(l => l.pkg == null), l => item(l.code).rent) + sum(pkgs, p => p.price);
   const hours = (returnBy - pickupAt) / 3.6e6;
-  const extraDays = Math.max(0, Math.ceil((hours - 46.01) / 24));     // standard rental = 46 h (2 PM → +2 days 12 PM)
+  const extraDays = Math.max(0, Math.ceil((hours - standardHours() - 0.01) / 24));   // beyond the standard same-day → next-noon rental
   const extraAmt = Math.round(base * extraDays * S().extraDayPct / 100);
   const gross = base + extraAmt;
   let v = null, discount = 0;
-  if (voucherCode) { v = checkVoucher(voucherCode, { amount: gross, kind: 'rental', customerId }); if (v.ok) discount = v.discount; }
+  const manual = offerPrice != null && offerPrice !== '' && +offerPrice < gross;
+  if (manual) discount = gross - Math.max(0, Math.round(+offerPrice));            // offer price typed by staff → discount worked out
+  else if (voucherCode) { v = checkVoucher(voucherCode, { amount: gross, kind: 'rental', customerId }); if (v.ok) discount = v.discount; }
   const deposit = lines.length ? Math.max(S().minDeposit, sum(lines, l => item(l.code).deposit)) : 0;
-  return { itemsSum, base, pkgSavings: itemsSum - base, extraDays, extraAmt, gross, v, discount, rentNet: gross - discount, deposit };
+  return { itemsSum, base, pkgSavings: itemsSum - base, extraDays, extraAmt, gross, v, discount, manual, discountPct: gross ? Math.round(discount / gross * 1000) / 10 : 0, rentNet: gross - discount, deposit };
 }
 
 /* ---------- Vouchers ---------- */
@@ -980,8 +1056,8 @@ function recordPayment(b, amount, mode, at, by) {
 /* ---------- Booking lifecycle (core — shared by seed + API) ----------
    reserved → picked (handover) → returned_pending (optional quick receive) → closed
    reserved → cancelled  |  any → void (manager).  Nothing is ever deleted. */
-function makeBooking({ customerId, lines, pkgs, eventDate, pickupAt, returnBy, voucherCode, createdAt, by }) {
-  const q = quote({ lines, pkgs, pickupAt, returnBy, voucherCode, customerId });
+function makeBooking({ customerId, lines, pkgs, eventDate, pickupAt, returnBy, voucherCode, offerPrice, createdAt, by }) {
+  const q = quote({ lines, pkgs, pickupAt, returnBy, voucherCode, customerId, offerPrice });
   const ratio = q.itemsSum ? q.rentNet / q.itemsSum : 0;
   DB.seq.booking++;
   const b = {
@@ -1129,8 +1205,8 @@ function guard(perm, what, fn) {
 const PRESETS = [
   { label: 'Sun 27 Sep · 11:10 AM', sub: 'Start of the demo — morning at the shop', at: D(2026, 9, 27, 11, 10) },
   { label: 'Sun 27 Sep · 2:20 PM', sub: 'Pickup window (2–3 PM) in progress', at: D(2026, 9, 27, 14, 20) },
-  { label: 'Tue 29 Sep · 10:40 AM', sub: 'Return morning — your demo booking is due', at: D(2026, 9, 29, 10, 40) },
-  { label: 'Tue 29 Sep · 12:35 PM', sub: 'After the 12 PM deadline — overdue view', at: D(2026, 9, 29, 12, 35) },
+  { label: 'Mon 28 Sep · 10:40 AM', sub: 'Return morning — your demo booking is due', at: D(2026, 9, 28, 10, 40) },
+  { label: 'Mon 28 Sep · 12:35 PM', sub: 'After the 12 PM deadline — overdue view', at: D(2026, 9, 28, 12, 35) },
 ];
 function simulateUntil(t) {
   const bot = 'Anjali — Staff';
@@ -1150,13 +1226,13 @@ function simulateUntil(t) {
   DB.bookings.filter(b => b.status === 'returned_pending' && !b.userCreated && sod(b.receivedAt) < sod(t)).forEach(b => {
     completeCore(b, { at: addMin(b.receivedAt, 180), by: bot, lines: Object.fromEntries(b.lines.map(l => [l.code, { cond: 'good', charge: 0 }])), lateFeeAmt: 0, lateMins: 0, refundMode: 'UPI' });
   });
-  ['G017', 'C019'].forEach(c => { if (item(c).status === 'repair' && t >= D(2026, 9, 29, 10, 0)) { item(c).status = 'in'; item(c).log.push({ at: D(2026, 9, 29, 10, 0), by: 'Meera — Manager', text: 'Back from repair → Available' }); } });
+  ['G017', 'C019'].forEach(c => { if (item(c).status === 'repair' && t >= D(2026, 9, 28, 10, 0)) { item(c).status = 'in'; item(c).log.push({ at: D(2026, 9, 28, 10, 0), by: 'Meera — Manager', text: 'Back from repair → Available' }); } });
 }
 function setClock(t) {
   if (t <= NOW) { toast('The demo clock only moves forward. Use “Reset demo” to start over.'); return; }
   simulateUntil(t); NOW = new Date(t); closeMenus();
   audit('Demo clock moved', 'Prototype', fDT(t));
-  if (t >= D(2026, 9, 29, 12, 1)) tourMark('overdue');
+  if (t >= D(2026, 9, 28, 12, 1)) tourMark('overdue');
   render(); toast(`Demo clock: ${fDate(t)}, ${fTime(t)}`);
 }
 function resetDemo() { location.hash = '#/dashboard'; location.reload(); }
@@ -1168,12 +1244,12 @@ const TOUR_MAIN = [
   { id: 'start', t: 'Start a rental from G021', h: 'Press “Start Rental with this item”.' },
   { id: 'cust', t: 'Select the customer', h: 'Type 98260 in the mobile search → tap Aditi Joshi.' },
   { id: 'items', t: 'Add C043 + J027', h: 'In “Add items”, type C043 → Add. Then J027 → Add.' },
-  { id: 'dates', t: 'Select dates', h: 'Event Mon 28 Sep → Pickup today 2–3 PM, Return Tue 29 Sep before 12 PM. Press Continue.' },
+  { id: 'dates', t: 'Select dates', h: 'Event today (Sun 27 Sep) → Pickup today 2–3 PM, Return Mon 28 Sep before 12 PM. Press Continue.' },
   { id: 'voucher', t: 'Apply voucher OMG100', h: 'Type OMG100 → Apply. ₹100 off (min ₹500).' },
   { id: 'deposit', t: 'Collect ₹2,000 security deposit', h: 'Auto-calculated: ₹1,000 + ₹600 + ₹400. Keep “Collect now”.' },
   { id: 'confirm', t: 'Confirm the ₹2,997 transaction', h: '₹1,097 rent − ₹100 + ₹2,000 deposit. Continue → Confirm.' },
   { id: 'confirmed', t: 'Booking confirmation', h: 'Includes the WhatsApp message with pickup & return timing.' },
-  { id: 'back', t: 'Back to Dashboard → jump to return day', h: 'Use the demo clock (top bar) or the button below.', action: 'jump29' },
+  { id: 'back', t: 'Back to Dashboard → jump to return day', h: 'Use the demo clock (top bar) or the button below.', action: 'jumpRet' },
   { id: 'due', t: 'Your booking in “Returns Today”', h: 'Shown with “Return before 12:00 PM”.' },
   { id: 'openret', t: 'Open the return', h: 'Tap “Mark Returned” on your booking.' },
   { id: 'damage', t: 'Mark C043 — Minor Damage ₹300', h: 'Tap “Minor Damage” on C043. The ₹300 charge fills in (editable).' },
@@ -1183,7 +1259,7 @@ const TOUR_MAIN = [
   { id: 'avail', t: 'Items available again', h: 'Tap “View items in Inventory”.' },
 ];
 const TOUR_EXTRA = [
-  { id: 'overdue', t: 'See overdue returns (after 12 PM)', h: 'Jump the clock to 12:35 PM on 29 Sep.', action: 'jump1235' },
+  { id: 'overdue', t: 'See overdue returns (after 12 PM)', h: 'Jump the clock to 12:35 PM on 28 Sep.', action: 'jump1235' },
   { id: 'sale', t: 'Sell an item (G014)', h: 'Open G014 → “Sell this item”. Try G021 too — it’s blocked by a future booking.', go: '#/item/G014' },
   { id: 'vcreate', t: 'Create a voucher', h: 'Vouchers → Create voucher.', go: '#/vouchers/new' },
   { id: 'cal', t: 'Calendar', h: 'Pickups, events and returns by day.', go: '#/calendar' },
@@ -1194,7 +1270,7 @@ const TOUR_EXTRA = [
 const TOUR = { open: true, full: false, done: new Set() };
 function tourMark(id) { if (!TOUR.done.has(id)) { TOUR.done.add(id); renderTour(); } }
 function tourAction(a) {
-  if (a === 'jump29') { tourMark('back'); if (NOW < PRESETS[2].at) setClock(PRESETS[2].at); go('#/dashboard'); }
+  if (a === 'jumpRet') { tourMark('back'); if (NOW < PRESETS[2].at) setClock(PRESETS[2].at); go('#/dashboard'); }
   if (a === 'jump1235') { if (NOW < PRESETS[3].at) setClock(PRESETS[3].at); go('#/dashboard'); }
 }
 function renderTour() {
@@ -1204,7 +1280,7 @@ function renderTour() {
   const stepRow = (s, i, main) => {
     const d = TOUR.done.has(s.id), c = main && cur && cur.id === s.id;
     return `<div class="tstep ${d ? 'done' : ''} ${c ? 'cur' : ''}"><i>${d ? ic('check', 13, 3) : main ? i + 1 : '•'}</i><div class="grow"><b>${esc(s.t)}</b>${(c || !main) && !d ? `<div class="h">${esc(s.h)}</div>` : ''}
-      ${(c || !main) && !d && (s.go || s.action) ? `<div class="row" style="margin-top:6px">${s.go ? `<button class="btn btn-sm btn-soft" onclick="go('${s.go}')">Take me there ${ic('right', 14)}</button>` : ''}${s.action ? `<button class="btn btn-sm btn-accent" onclick="tourAction('${s.action}')">${ic('ff', 14)} ${s.action === 'jump29' ? 'Jump to 29 Sep, 10:40 AM' : 'Jump to 12:35 PM'}</button>` : ''}</div>` : ''}</div></div>`;
+      ${(c || !main) && !d && (s.go || s.action) ? `<div class="row" style="margin-top:6px">${s.go ? `<button class="btn btn-sm btn-soft" onclick="go('${s.go}')">Take me there ${ic('right', 14)}</button>` : ''}${s.action ? `<button class="btn btn-sm btn-accent" onclick="tourAction('${s.action}')">${ic('ff', 14)} ${s.action === 'jumpRet' ? 'Jump to 28 Sep, 10:40 AM' : 'Jump to 12:35 PM'}</button>` : ''}</div>` : ''}</div></div>`;
   };
   $('#tourRoot').innerHTML = `
     <button class="tour-fab" onclick="TOUR.open=!TOUR.open;renderTour()" aria-label="Demo tour"><span class="ring" style="--p:${Math.round(done / all * 100)}"><span>${done}</span></span><span class="tl">Demo tour · ${done}/${all}</span></button>
@@ -1524,7 +1600,7 @@ function scrInventory(r) {
         <div class="field" style="min-width:250px"><div class="input-wrap"><span class="pre small">Free on</span><input type="date" class="input" style="padding-left:78px" value="${INV.free}" onchange="INV.free=this.value;render()" title="Show pieces free for an event date"></div></div>
         <div class="seg"><button class="${INV.view === 'grid' ? 'on' : ''}" onclick="INV.view='grid';render()" aria-label="Grid">${ic('more', 18)}</button><button class="${INV.view === 'list' ? 'on' : ''}" onclick="INV.view='list';render()" aria-label="List">${ic('list', 18)}</button></div>
       </div>
-      ${INV.free ? `<div class="banner info">${ic('calendar')}<div class="grow">Showing only pieces free for an event on <b>${fDate(parseIso(INV.free))}</b> (pickup day before ${fHHMM(S().pickupStart)}, return day after by ${fHHMM(S().returnDeadline)}).</div><button class="btn btn-sm" onclick="INV.free='';render()">Clear</button></div>` : ''}
+      ${INV.free ? `<div class="banner info">${ic('calendar')}<div class="grow">Showing only pieces free for an event on <b>${fDate(parseIso(INV.free))}</b> (pickup same day from ${fHHMM(S().pickupStart)}, return next day by ${fHHMM(S().returnDeadline)}).</div><button class="btn btn-sm" onclick="INV.free='';render()">Clear</button></div>` : ''}
       <div class="chips scroll">${[['all', 'All types'], ...Object.entries(TYPES).map(([k, v]) => [k, v.short])].map(([k, l]) => `<button class="chip ${INV.type === k ? 'on' : ''}" onclick="INV.type='${k}';INV.size='all';render()">${l} <span class="c">${tcnt(k)}</span></button>`).join('')}
         <span style="width:1px;background:var(--line-2);margin:0 4px"></span>
         <select class="input" style="height:40px;width:auto;border-radius:99px" onchange="INV.size=this.value;render()"><option value="all">All sizes</option>${sizes.map(z => `<option ${INV.size === z ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select>
@@ -1554,6 +1630,7 @@ function renderInvResults() {
     el.innerHTML = head + `<div class="igrid">${list.map(({ it, st }) => icard(it, st)).join('')}</div>`;
   } else {
     el.innerHTML = head + `<div class="card tbl-wrap"><table class="tbl"><thead><tr><th></th><th>Code</th><th>Item</th><th>Size</th><th class="r">Rent</th><th class="r">Deposit</th><th>Status</th><th>Next booking</th></tr></thead><tbody>${list.map(({ it, st }) => { const nb = nextBooking(it.code); return `<tr class="click" onclick="go('#/item/${it.code}')"><td>${thumb(it, 'sm')}</td><td><span class="code">${it.code}</span></td><td><b>${esc(it.name)}</b><div class="tiny muted">${MODES[it.mode]}</div></td><td>${esc(it.size)}</td><td class="r num">${it.rent ? rs(it.rent) : '—'}</td><td class="r num">${it.deposit ? rs(it.deposit) : '—'}</td><td>${pill(st)}</td><td class="small">${nb ? `${nb.no}<div class="tiny muted">${fDateS(nb.pickupAt)}–${fDateS(nb.returnBy)}</div>` : '<span class="muted">—</span>'}</td></tr>`; }).join('')}</tbody></table></div>`;
+    labelTables(el);
   }
 }
 function icard(it, st) {
@@ -1788,10 +1865,11 @@ function scrCustomer(id) {
 let W = null;
 function newWizard(o = {}) {
   const d = datesForEvent(defaultEvent());
-  W = { step: o.customerId ? 2 : 1, customerId: o.customerId || null, cq: '', lines: (o.codes || []).map(c => ({ code: c, pkg: null })), pkgs: [], ...d, custom: false, iq: '', itype: 'all', voucher: null, vmsg: '', vok: false, depOverride: null, depTiming: 'now', payMode: 'UPI', payAmt: null, ack: false, notes: '' };
+  W = { step: o.customerId ? 2 : 1, customerId: o.customerId || null, cq: '', lines: (o.codes || []).map(c => ({ code: c, pkg: null })), pkgs: [], ...d, custom: false, iq: '', itype: 'all', voucher: null, vmsg: '', vok: false, depOverride: null, depTiming: 'now', payMode: 'UPI', payAmt: null, ack: false, notes: '', offer: null };
 }
 function startRental(o) { newWizard(o); if (o.codes && o.codes.includes('G021')) tourMark('start'); go('#/new'); }
-const wq = () => quote({ lines: W.lines, pkgs: W.pkgs, pickupAt: W.pickupAt, returnBy: W.returnBy, voucherCode: W.voucher, customerId: W.customerId });
+const wq = () => quote({ lines: W.lines, pkgs: W.pkgs, pickupAt: W.pickupAt, returnBy: W.returnBy, voucherCode: W.voucher, customerId: W.customerId, offerPrice: W.offer });
+const wDiscLabel = q => q.manual ? `Offer price (${q.discountPct}% off)` : `Voucher ${W.voucher}`;
 const wDeposit = q => W.depOverride != null ? W.depOverride : q.deposit;
 const wDueNow = q => q.rentNet + (W.depTiming === 'now' ? wDeposit(q) : 0);
 const wPay = q => W.payAmt != null ? W.payAmt : wDueNow(q);
@@ -1822,7 +1900,7 @@ function wizCanGo(n) {
 }
 function wizGoto(n) {
   const err = wizCanGo(n); if (err && n > W.step) { toast(err, 'bad'); return; }
-  if (W.step === 2 && n > 2 && sameDay(W.eventDate, D(2026, 9, 28))) tourMark('dates');
+  if (W.step === 2 && n > 2 && sameDay(W.eventDate, D(2026, 9, 27))) tourMark('dates');
   if (W.step === 3 && n > 3) { const q = wq(); if (wDeposit(q) === 2000 && W.depTiming === 'now') tourMark('deposit'); }
   W.step = n; render(); window.scrollTo(0, 0);
 }
@@ -1843,7 +1921,7 @@ function wizSummary() {
     ${W.lines.length ? `<div class="hr"></div>${W.pkgs.map((p, pi) => `<div class="line"><span><b>${esc(p.name)}</b> <span class="tiny muted">(${W.lines.filter(l => l.pkg === pi).map(l => l.code).join(' + ')})</span></span><span>${rs(p.price)}</span></div>`).join('')}
       ${W.lines.filter(l => l.pkg == null).map(l => `<div class="line"><span><span class="code">${l.code}</span> ${esc(TYPES[item(l.code).type].short)}</span><span>${rs(item(l.code).rent)}</span></div>`).join('')}
       ${q.extraDays ? `<div class="line"><span>Extra ${q.extraDays} day${q.extraDays > 1 ? 's' : ''} (+${s.extraDayPct}%/day)</span><span>${rs(q.extraAmt)}</span></div>` : ''}
-      ${q.discount ? `<div class="line neg"><span>Voucher ${W.voucher}</span><span>−${rs(q.discount)}</span></div>` : ''}
+      ${q.discount ? `<div class="line neg"><span>${wDiscLabel(q)}</span><span>−${rs(q.discount)}</span></div>` : ''}
       <div class="line"><span>Rent payable</span><b>${rs(q.rentNet)}</b></div>
       <div class="line"><span>Security deposit <span class="tiny muted">(refundable)</span></span><b>${rs(wDeposit(q))}</b></div>
       <div class="line t"><span>${W.depTiming === 'now' ? 'Total due now' : 'Due now (rent)'}</span><span>${rs(wDueNow(q))}</span></div>
@@ -1879,15 +1957,20 @@ function setCustom(which, part, val) {
   W[which] = d; W.payAmt = null; render();
 }
 function wizStep2() {
-  const s = S(), start = defaultEvent();
-  const evs = [...Array(12)].map((_, i) => addDays(start, i));
+  const s = S(), start = defaultEvent(), today = sod(NOW);
+  const fest = festivalNights().filter(f => f.d >= start);
+  const quick = [start, addDays(start, 1)];
+  const chip = d => { const n = festivalNightOf(d), tag = sameDay(d, today) ? 'Today' : sameDay(d, addDays(today, 1)) ? 'Tomorrow' : DAYS[d.getDay()];
+    return `<button class="evchip ${n ? 'nav' : ''} ${sameDay(d, W.eventDate) ? 'on' : ''}" onclick="setEvent('${isoDay(d)}')"><small>${tag}</small><b>${d.getDate()}</b><small>${MONTHS[d.getMonth()]}</small>${n ? `<span class="nb">Night ${n}</span>` : ''}</button>`; };
+  const festOnly = fest.filter(f => !quick.some(q => sameDay(q, f.d)));
+  const custom = !quick.concat(fest.map(f => f.d)).some(d => sameDay(d, W.eventDate));
   return `<div class="card pad stack">
-    <div class="row between"><h3>When is the event?</h3><span class="hint">Pickup day before · return day after</span></div>
-    <div class="evchips">${evs.map(d => `<button class="evchip ${sameDay(d, W.eventDate) ? 'on' : ''}" onclick="setEvent('${isoDay(d)}')"><small>${DAYS[d.getDay()]}</small><b>${d.getDate()}</b><small>${MONTHS[d.getMonth()]}</small></button>`).join('')}
-      <label class="evchip" style="cursor:pointer;min-width:110px"><small>Other date</small><input type="date" style="border:0;font-weight:700;width:100px;background:transparent" onchange="setEvent(this.value)"></label></div>
+    <div class="row between"><h3>When is the event?</h3><span class="hint">Pickup same day ${fHHMM(s.pickupStart)}–${fHHMM(s.pickupEnd)} · return next day before ${fHHMM(s.returnDeadline)}</span></div>
+    <div class="evchips">${quick.map(chip).join('')}${festOnly.length ? `<div class="evsep">${esc(s.festivalName || 'Navratri')}</div>${festOnly.map(f => chip(f.d)).join('')}` : ''}
+      <label class="evchip ${custom ? 'on' : ''}" style="cursor:pointer;min-width:120px"><small>Other date</small><input type="date" value="${custom ? isoDay(W.eventDate) : ''}" style="border:0;font-weight:700;width:108px;background:transparent;color:inherit" onchange="setEvent(this.value)"></label></div>
     <div class="datecards">
       <div class="dcard pick"><div class="k">${ic('bag', 14)} Pickup</div><div class="d">${fDate(W.pickupAt)}</div><div class="t">${W.custom ? fTime(W.pickupAt) : `${fHHMM(s.pickupStart)} – ${fHHMM(s.pickupEnd)}`}</div></div>
-      <div class="dcard ev"><div class="k">${ic('sparkle', 14)} Event</div><div class="d">${fDate(W.eventDate)}</div><div class="t">Garba night</div></div>
+      <div class="dcard ev"><div class="k">${ic('sparkle', 14)} Event</div><div class="d">${fDate(W.eventDate)}</div><div class="t">${festivalNightOf(W.eventDate) ? esc(s.festivalName || 'Navratri') + ' · Night ' + festivalNightOf(W.eventDate) : 'Garba night'}</div></div>
       <div class="dcard ret"><div class="k">${ic('ret', 14)} Return</div><div class="d">${fDate(W.returnBy)}</div><div class="t">Before ${fTime(W.returnBy)}</div></div></div>
     <details ${W.custom ? 'open' : ''} ontoggle="if(this.open)W.custom=true"><summary class="small strong" style="cursor:pointer;color:var(--brand)">Adjust pickup / return time (multi-day or special cases)</summary>
       <div class="grid g4" style="margin-top:10px">
@@ -1951,16 +2034,19 @@ function wizAddPkg(key) {
 function wizStep3() {
   const q = wq(), c = cust(W.customerId);
   const depBreak = W.lines.map(l => `${l.code} ${rs(item(l.code).deposit)}`).join(' + ');
-  return `<div class="card"><div class="card-h">${ic('ticket', 20)}<h3 class="grow">Rent & voucher</h3></div><div class="card-b summary">
+  return `<div class="card"><div class="card-h">${ic('ticket', 20)}<h3 class="grow">Rent, offer price & voucher</h3></div><div class="card-b summary">
       ${W.pkgs.map((p, pi) => `<div class="line"><span><b>${esc(p.name)}</b> <span class="tiny muted">${W.lines.filter(l => l.pkg === pi).map(l => l.code).join(' + ')}</span></span><span>${rs(p.price)}</span></div>`).join('')}
       ${W.lines.filter(l => l.pkg == null).map(l => `<div class="line"><span><span class="code">${l.code}</span> ${esc(item(l.code).name)}</span><span>${rs(item(l.code).rent)}</span></div>`).join('')}
       ${q.pkgSavings > 0 ? `<div class="line tiny muted"><span>Package saving vs. individual prices</span><span>${rs(q.pkgSavings)}</span></div>` : ''}
       ${q.extraDays ? `<div class="line"><span>Extra ${q.extraDays} day(s)</span><span>${rs(q.extraAmt)}</span></div>` : ''}
-      <div class="line"><span>Subtotal</span><b>${rs(q.gross)}</b></div>
-      <div class="row" style="margin:10px 0">${W.voucher && W.vok ? `<div class="banner good grow" style="padding:10px 14px">${ic('check')}<span class="grow">${esc(W.vmsg)}</span><button class="btn btn-sm" onclick="W.voucher=null;W.vmsg='';W.payAmt=null;render()">Remove</button></div>`
-        : `<input class="input mono" id="wvin" style="text-transform:uppercase;flex:1" placeholder="Voucher code (e.g. OMG100)" onkeydown="if(event.key==='Enter')wizVoucher()"><button class="btn btn-lg btn-soft" onclick="wizVoucher()">Apply</button>`}</div>
-      ${W.vmsg && !W.vok ? `<div class="err" style="margin-bottom:8px">${ic('alert', 14)} ${esc(W.vmsg)}</div>` : ''}
-      ${q.discount ? `<div class="line neg"><span>Voucher ${W.voucher}</span><span>−${rs(q.discount)}</span></div>` : ''}
+      <div class="line"><span>Subtotal (list price)</span><b>${rs(q.gross)}</b></div>
+      <div class="field" style="margin:12px 0 4px"><label>Offer price — the rent you are giving to this customer</label>
+        <div class="row"><div class="input-wrap grow"><span class="pre">₹</span><input class="input big" id="woffer" type="number" inputmode="numeric" min="0" value="${W.offer != null ? W.offer : ''}" placeholder="${q.gross}" onchange="wizOffer(this.value)" onkeydown="if(event.key==='Enter')this.blur()"></div>${W.offer != null ? `<button class="btn btn-lg" onclick="wizOffer('')">Clear</button>` : ''}</div>
+        ${q.manual ? `<div class="banner good" style="margin-top:8px">${ic('check')}<span class="grow">Offer <b>${rs(q.rentNet)}</b> on ${rs(q.gross)} · discount <b>${rs(q.discount)}</b> (<b>${q.discountPct}% off</b>)</span></div>` : `<div class="hint">Leave empty to charge the list price. Type e.g. 850 on a 1,000 rental — the discount % is worked out for you.</div>`}</div>
+      ${W.offer != null ? '' : `<div class="row" style="margin:10px 0">${W.voucher && W.vok ? `<div class="banner good grow" style="padding:10px 14px">${ic('check')}<span class="grow">${esc(W.vmsg)}</span><button class="btn btn-sm" onclick="W.voucher=null;W.vmsg='';W.payAmt=null;render()">Remove</button></div>`
+        : `<input class="input mono" id="wvin" style="text-transform:uppercase;flex:1" placeholder="Voucher code (e.g. OMG100)" onkeydown="if(event.key==='Enter')wizVoucher()"><button class="btn btn-lg btn-soft" onclick="wizVoucher()">Apply</button>`}</div>`}
+      ${W.vmsg && !W.vok && W.offer == null ? `<div class="err" style="margin-bottom:8px">${ic('alert', 14)} ${esc(W.vmsg)}</div>` : ''}
+      ${q.discount ? `<div class="line neg"><span>${wDiscLabel(q)}</span><span>−${rs(q.discount)}</span></div>` : ''}
       <div class="line t"><span>Rent payable</span><span>${rs(q.rentNet)}</span></div></div></div>
     <div class="card"><div class="card-h">${ic('shield', 20)}<h3 class="grow">Security deposit</h3><span class="tiny muted">refundable</span></div><div class="card-b stack">
       <div class="row wrap"><div class="grow"><div style="font-size:30px;font-weight:800">${rs(wDeposit(q))}</div><div class="tiny muted">${W.depOverride != null ? `Overridden (auto ${rs(q.deposit)})` : `Auto: ${depBreak}`}</div></div>
@@ -1975,6 +2061,17 @@ function wizStep3() {
       <div class="lbl">Payment mode</div><div class="seg">${PAY_MODES.map(p => `<button class="${W.payMode === p ? 'on' : ''}" onclick="W.payMode='${p}';render()">${p}</button>`).join('')}</div>
       ${W.payMode === 'UPI' ? `<div class="hint">Show the shop UPI QR · note the UTR / reference in the real app.</div>` : ''}</div></div>
     ${wizNav('Review')}`;
+}
+function wizOffer(v) {
+  const gross = quote({ lines: W.lines, pkgs: W.pkgs, pickupAt: W.pickupAt, returnBy: W.returnBy }).gross;
+  if (v === '' || v == null) { W.offer = null; W.payAmt = null; return render(); }
+  const n = Math.round(+v);
+  if (!(n >= 0)) return toast('Enter a valid amount', 'bad');
+  if (n >= gross) { W.offer = null; W.payAmt = null; toast(`${rs(n)} is not below the list price ${rs(gross)} — no discount`); return render(); }
+  const pct = Math.round((gross - n) / gross * 1000) / 10;
+  const apply = () => { W.offer = n; W.voucher = null; W.vok = false; W.vmsg = ''; W.payAmt = null; render(); };
+  if (pct > (+S().staffMaxDiscountPct || 0)) return guard('fee.waive', `Give ${pct}% discount (offer ${rs(n)} on ${rs(gross)})`, apply);
+  apply();
 }
 function wizVoucher() {
   const code = ($('#wvin').value || '').trim().toUpperCase(); if (!code) return;
@@ -2002,7 +2099,7 @@ function wizStep4() {
         <div class="dcard ev"><div class="k">Event</div><div class="d">${fDate(W.eventDate)}</div></div>
         <div class="dcard ret"><div class="k">Return</div><div class="d">${fDate(W.returnBy)}</div><div class="t">Before ${fTime(W.returnBy)}</div></div></div>
       <div>${W.lines.map(l => { const it = item(l.code); return `<div class="cartrow">${thumb(it, 'sm')}<div class="grow"><span class="code">${it.code}</span> <b class="small">${esc(it.name)}</b><div class="tiny muted">${esc(it.size)}</div></div><span class="tiny" style="color:var(--good);font-weight:700">${ic('check', 12, 3)} Available</span></div>`; }).join('')}</div>
-      <div class="summary"><div class="line"><span>Rent payable${q.discount ? ` (after ${W.voucher})` : ''}</span><b>${rs(q.rentNet)}</b></div><div class="line"><span>Security deposit</span><b>${rs(wDeposit(q))}</b></div>
+      <div class="summary"><div class="line"><span>Rent payable${q.discount ? ` (${q.manual ? 'offer price, ' + q.discountPct + '% off' : 'after ' + W.voucher})` : ''}</span><b>${rs(q.rentNet)}</b></div><div class="line"><span>Security deposit</span><b>${rs(wDeposit(q))}</b></div>
         <div class="line t"><span>Collecting now · ${W.payMode}</span><span>${rs(pay)}</span></div>${bal > 0 ? `<div class="line" style="color:var(--danger)"><span>Balance due at pickup</span><b>${rs(bal)}</b></div>` : ''}</div>
       <div class="field"><label>Booking notes (optional)</label><input class="input" id="wnotes" value="${esc(W.notes)}" onchange="W.notes=this.value" placeholder="e.g. customer will try the choli at pickup"></div>
       <label class="check" style="align-items:flex-start"><input type="checkbox" ${W.ack ? 'checked' : ''} onchange="W.ack=this.checked;$('#wconfirm').disabled=!this.checked"><span>Customer informed: pickup <b>${fHHMM(s.pickupStart)}–${fHHMM(s.pickupEnd)}</b>, return <b>before ${fTime(W.returnBy)} on ${fDate(W.returnBy)}</b>, late fee: ${esc(lateRuleText())}.</span></label>
@@ -2014,7 +2111,7 @@ async function wizConfirm() {
   const bad = wBlocked();
   if (bad.length) { toast(`${bad[0].code} was just booked elsewhere — please swap it`, 'bad'); W.step = 2; return render(); }
   const q = wq(), pay = wPay(q);
-  const b = makeBooking({ customerId: W.customerId, lines: W.lines, pkgs: W.pkgs, eventDate: W.eventDate, pickupAt: W.pickupAt, returnBy: W.returnBy, voucherCode: W.voucher, createdAt: new Date(NOW), by: CUR.name });
+  const b = makeBooking({ customerId: W.customerId, lines: W.lines, pkgs: W.pkgs, eventDate: W.eventDate, pickupAt: W.pickupAt, returnBy: W.returnBy, voucherCode: W.voucher, offerPrice: W.offer, createdAt: new Date(NOW), by: CUR.name });
   if (W.depOverride != null) b.depositDue = W.depOverride;
   b.userCreated = true; b.notes = W.notes;
   if (pay > 0) recordPayment(b, pay, W.payMode, new Date(NOW), CUR.name);
@@ -2070,7 +2167,7 @@ function scrBooking(no, r) {
       <div class="card pad"><div class="row"><div class="avatar">${initials(c.name)}</div><div class="grow"><b>${esc(c.name)}</b><div class="tiny muted">${fMob(c.mobile)} · ${c.id}</div></div><button class="btn btn-sm btn-ghost" onclick="go('#/customer/${c.id}')">Profile</button></div>
         <div class="row" style="margin-top:12px">${callBtn(c, no).replace('btn-sm', 'grow')}${waBtn(no, 'reminder').replace('btn-sm', 'grow')}</div></div>
       <div class="card pad summary"><h3 style="margin-bottom:8px">Money</h3>
-        <div class="line"><span>Rent (list)</span><span>${rs(b.rentGross)}</span></div>${b.discount ? `<div class="line neg"><span>Voucher ${b.voucher}</span><span>−${rs(b.discount)}</span></div>` : ''}
+        <div class="line"><span>Rent (list)</span><span>${rs(b.rentGross)}</span></div>${b.discount ? `<div class="line neg"><span>${b.voucher ? 'Voucher ' + b.voucher : 'Offer price discount (' + Math.round(b.discount / b.rentGross * 1000) / 10 + '% off)'}</span><span>−${rs(b.discount)}</span></div>` : ''}
         <div class="line"><span>Rent payable</span><b>${rs(m.rentNet)}</b></div><div class="line"><span>Deposit required</span><span>${rs(b.depositDue)}</span></div>
         <div class="line"><span>Deposit held now</span><b>${rs(m.held)}</b></div>
         ${b.returnInfo ? `<div class="line"><span>Damage</span><span>${rs(m.damage)}</span></div><div class="line"><span>Late fee${b.returnInfo.waived ? ' (waived)' : ''}</span><span>${rs(m.late)}</span></div><div class="line"><span>Refunded</span><b>${rs(m.refunded)}${b.returnInfo.refundMode ? ' · ' + b.returnInfo.refundMode : ''}</b></div>` : ''}
@@ -2226,7 +2323,7 @@ function scrCalendar() {
   const on = (d, k) => live.filter(b => sameDay(b[k], d));
   const cells = [...Array(weeks * 7)].map((_, i) => {
     const d = addDays(start, i), p = on(d, 'pickupAt').length, e = on(d, 'eventDate').length, r = on(d, 'returnBy').length;
-    return `<button class="day ${d.getMonth() !== CAL.m ? 'out' : ''} ${sameDay(d, NOW) ? 'today' : ''} ${isoDay(d) === CAL.sel ? 'sel' : ''}" onclick="CAL.sel='${isoDay(d)}';render()"><span class="n">${d.getDate()}</span>
+    return `<button class="day ${d.getMonth() !== CAL.m ? 'out' : ''} ${sameDay(d, NOW) ? 'today' : ''} ${isoDay(d) === CAL.sel ? 'sel' : ''}" onclick="CAL.sel='${isoDay(d)}';render()"><span class="n">${d.getDate()}</span>${festivalNightOf(d) ? `<span class="tiny" style="color:var(--accent-2);font-weight:800">✦<span class="lbl2"> Night</span> ${festivalNightOf(d)}</span>` : ''}
       ${p ? `<span class="ev p">↑ ${p}<span class="lbl2"> pickup</span></span>` : ''}${e ? `<span class="ev e">★ ${e}<span class="lbl2"> event</span></span>` : ''}${r ? `<span class="ev r">↓ ${r}<span class="lbl2"> return</span></span>` : ''}</button>`;
   }).join('');
   const sd = parseIso(CAL.sel);
@@ -2457,14 +2554,17 @@ function scrSettings(r) {
         ${LIVE && can('settings.edit') ? `<div class="hr"></div><h3>Data tools</h3><p class="small muted" style="margin:0">Load a small example set (5 items, 5 customers, 3 bookings) to see how things work, then edit or replace it with your real stock.</p><button class="btn btn-lg" onclick="importSample()">${ic('download', 18)} Load starter data</button><button class="btn btn-lg btn-danger-soft" onclick="clearDataModal()">${ic('alert', 18)} Clear all data…</button>` : ''}</div></div>`;
   }
   if (tab === 'timings') {
-    const ex = datesForEvent(D(2026, 9, 28));
+    const ex = datesForEvent((festivalNights()[0] || {}).d || addDays(sod(NOW), 1));
     body = `<div class="grid g2"><div class="card pad stack"><h3>Pickup & return rules</h3>
       <div class="grid g2"><div class="field"><label>Pickup window starts</label>${inp('pickupStart', 'time')}</div><div class="field"><label>Pickup window ends</label>${inp('pickupEnd', 'time')}</div></div>
       <div class="field"><label>Return deadline (on return date)</label>${inp('returnDeadline', 'time')}<div class="hint">After this time the dashboard shows the rental as OVERDUE.</div></div>
       <div class="grid g2"><div class="field"><label>Turnaround buffer (hours)</label>${inp('bufferHours', 'number', 'min="0" max="48"')}<div class="hint">Gap between a return deadline and the next pickup of the same piece — for inspection & steaming.</div></div>
       <div class="field"><label>“Reserved” look-ahead (hours)</label>${inp('reserveWindowHours')}<div class="hint">Show an item as Reserved when its next pickup is this close.</div></div></div>
-      <div class="field"><label>Extra day charge (% of rent per day)</label>${inp('extraDayPct')}</div></div>
-      <div class="card pad stack"><h3>Preview</h3><p class="small muted" style="margin:0">A customer booking for the Garba night of Mon 28 Sep:</p>
+      <div class="field"><label>Extra day charge (% of rent per day)</label>${inp('extraDayPct')}</div>
+      <div class="hr"></div><h3>Garba season (date buttons in New Rental)</h3>
+      <div class="grid g3"><div class="field"><label>Season name</label>${inp('festivalName', 'text')}</div><div class="field"><label>First night</label>${inp('festivalStart', 'date')}</div><div class="field"><label>Number of nights</label>${inp('festivalNights', 'number', 'min="0" max="15"')}</div></div>
+      <div class="hint">Navratri 2026 = 11–19 Oct (9 nights, Dussehra 20 Oct). Update these each year.</div></div>
+      <div class="card pad stack"><h3>Preview</h3><p class="small muted" style="margin:0">A customer booking for the night of ${fDate(ex.eventDate)}:</p>
         <div class="datecards" style="grid-template-columns:1fr"><div class="dcard pick"><div class="k">Pickup</div><div class="d">${fDate(ex.pickupAt)}</div><div class="t">${fHHMM(s.pickupStart)} – ${fHHMM(s.pickupEnd)}</div></div><div class="dcard ev"><div class="k">Event</div><div class="d">${fDate(ex.eventDate)}</div></div><div class="dcard ret"><div class="k">Return</div><div class="d">${fDate(ex.returnBy)}</div><div class="t">Before ${fTime(ex.returnBy)}</div></div></div>
         <div class="hint">Same piece can go out again at ${fTime(addMin(ex.returnBy, s.bufferHours * 60))} on ${fDateS(ex.returnBy)}.</div></div></div>`;
   }
@@ -2476,7 +2576,7 @@ function scrSettings(r) {
       ${s.lateMode === 'flat' ? `<div class="field"><label>Per extra full day (₹)</label>${inp('latePerDay')}</div>` : ''}<div class="field"><label>Maximum late fee (₹, 0 = none)</label>${inp('lateCap')}</div></div>
       <div class="banner info" style="font-weight:500">${ic('clock', 18)} ${esc(lateRuleText())}</div></div>
       <div class="card pad"><h3 style="margin-bottom:10px">What customers pay (deadline ${fHHMM(s.returnDeadline)})</h3><table class="tbl"><tbody>${exs.map(([l, at]) => { const f = lateFee(atTime(base, s.returnDeadline), at); return `<tr><td>Returned ${l}</td><td class="r"><b>${f.fee ? rs(f.fee) : f.late ? 'Grace — ₹0' : '₹0'}</b></td></tr>`; }).join('')}</tbody></table></div>
-      <div class="card pad stack"><h3>Deposit</h3><div class="field"><label>Deposit rule</label><select class="input"><option>Sum of each item’s deposit</option><option disabled>Fixed per booking (future)</option></select></div><div class="field"><label>Minimum deposit per booking (₹)</label>${inp('minDeposit')}</div><div class="hint">Staff can’t lower a deposit; a manager can override with a reason (logged).</div></div>
+      <div class="card pad stack"><h3>Deposit</h3><div class="field"><label>Deposit rule</label><select class="input"><option>Sum of each item’s deposit</option><option disabled>Fixed per booking (future)</option></select></div><div class="field"><label>Minimum deposit per booking (₹)</label>${inp('minDeposit')}</div><div class="field"><label>Max discount staff can give with an offer price (%)</label>${inp('staffMaxDiscountPct')}<div class="hint">Bigger discounts need a manager PIN (logged).</div></div><div class="hint">Staff can’t lower a deposit; a manager can override with a reason (logged).</div></div>
       <div class="card pad stack"><h3>Suggested damage charges</h3><div class="grid g2">${[['minor', 'Minor damage'], ['stain', 'Stained'], ['repair', 'Repair required'], ['major', 'Major damage']].map(([k, l]) => `<div class="field"><label>${l} (₹)</label><input class="input" type="number" value="${s.damage[k]}" onchange="S().damage['${k}']=+this.value;audit('Setting changed','damage.${k}',this.value);toast('Saved','good')"></div>`).join('')}</div><div class="hint">Pre-filled during returns; staff can adjust. Missing = item’s selling price or 1.5× cost.</div></div></div>`;
   }
   if (tab === 'roles') {
@@ -2690,7 +2790,7 @@ function syncChip() {
   const s = SYNC.state;
   const map = { saving: ['st-inspection', 'Saving…'], saved: ['st-available', 'Saved'], idle: ['st-available', 'Saved'], offline: ['st-lost', 'Offline · not saved'], error: ['st-lost', 'Not saved'] };
   const [cls, l] = map[s] || map.idle;
-  return `<button id="syncchip" class="pill ${cls}" style="height:44px;padding:0 12px;border:0;cursor:pointer" title="${esc(SYNC.msg || 'All changes are saved to the Google Sheet')}" onclick="${s === 'offline' || s === 'error' ? 'sync()' : 'reloadData()'}">${ic(s === 'saving' ? 'refresh' : s === 'offline' || s === 'error' ? 'alert' : 'cloud', 16)} ${l}</button>`;
+  return `<button id="syncchip" class="pill ${cls}" style="height:44px;padding:0 12px;border:0;cursor:pointer" title="${esc(SYNC.msg || 'All changes are saved to the Google Sheet')}" onclick="${s === 'offline' || s === 'error' ? 'sync()' : 'reloadData()'}">${ic(s === 'saving' ? 'refresh' : s === 'offline' || s === 'error' ? 'alert' : 'cloud', 16)} <span class="sync-l">${l}</span></button>`;
 }
 function sync() {
   if (!LIVE || !TOKEN) return Promise.resolve({ ok: true });
@@ -2972,8 +3072,17 @@ function render() {
   $('#page').innerHTML = out.html;
   renderShell(NAV_ALIAS[r.name] || r.name); renderTop(); renderTour();
   if (out.after) out.after();
+  labelTables($('#page'));
   scheduleSync();
   document.title = `${out.t} · OMG Rental`;
+}
+function labelTables(root) {
+  if (!root) return;
+  root.querySelectorAll('table.tbl:not(.perm)').forEach(t => {
+    const hs = [...t.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    t.querySelectorAll('tbody tr, tfoot tr').forEach(tr => [...tr.children].forEach((td, i) => { if (hs[i] && td.colSpan === 1) td.setAttribute('data-l', hs[i]); }));
+    t.classList.add('mcards');
+  });
 }
 function go(h) { if (location.hash === h) render(); else location.hash = h; }
 window.addEventListener('hashchange', () => { closeModal(); render(); window.scrollTo(0, 0); });
