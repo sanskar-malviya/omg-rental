@@ -52,7 +52,9 @@ If you change `Code.gs`: **Deploy → Manage deployments → Edit (pencil) → V
 ## Photos on GitHub (item photos + damage photos)
 Photos are compressed on the tablet (about 1280 px, 150–280 KB). The Apps Script uploads them to the **`photos` branch** of this repository (`sanskar-malviya/omg-rental`), and the raw URL is saved in the **Item_Photos** tab. Using a separate branch means uploads never trigger a Netlify rebuild and never mix with the code.
 
-The repository is public, so photo links work, but anyone with a link can see that photo. Only upload item and damage photos. **Never upload customer ID proofs.**
+The repository is public, so photo links work, but anyone with a link can see that photo.
+
+**Customer ID proofs (Aadhaar etc.)** are stored in the same public repository under `ids/<CUSTOMER>/<random>.jpg`, as the owner decided. The file names are random and the app only shows them to Owner / Manager (staff need a manager PIN), but anyone browsing the `photos` branch on GitHub can still see them. Record only the last 4 digits of the ID number. To make them truly private later, move the repository (or a separate ID repository) to private.
 
 ### 1. Create a GitHub token (one time)
 1. Open https://github.com/settings/personal-access-tokens/new (GitHub → your photo → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token).
@@ -75,7 +77,7 @@ Apps Script → ⚙ **Project Settings** → scroll to **Script Properties** →
 ### 4. Check
 **Settings → Connection** shows *Photo storage (GitHub): connected ✓*. Open an item → **Photos → Add photo**. The file appears at `github.com/sanskar-malviya/omg-rental/tree/photos/items/<CODE>/`.
 
-Files are stored as `items/<ITEM CODE>/…jpg` and `damage/<BOOKING NO>/<ITEM CODE>-…jpg`. "Remove" hides a photo in the app. The file stays in the branch history.
+Files are stored as `items/<ITEM CODE>/…jpg`, `damage/<BOOKING NO>/<ITEM CODE>-…jpg` and `ids/<CUSTOMER ID>/<random>.jpg`. "Remove" hides a photo in the app. The file stays in the branch history.
 
 
 ## QR tags & scanning

@@ -728,6 +728,10 @@ function art(type, hex, size = 100) {
     <path d="M28 88h44" stroke="${gold}" stroke-width="5"/>
     <path d="M31 91v5M37 91v5M43 91v5M49 91v5M55 91v5M61 91v5M67 91v5" stroke="${gold}" stroke-width="1.8"/>
     <path d="M20 14q30 10 60 0" stroke="${gold}" stroke-width="3" fill="none"/>`;
+  else if (type === 'GC') {   // Ghagra + Choli rented / sold together as one set
+    const inner = t => art(t, hex).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+    body = `<g transform="translate(16 34) scale(.68)">${inner('G')}</g><g transform="translate(20 2) scale(.6)">${inner('C')}</g>`;
+  }
   else body = `
     <path d="M24 22q26 54 52 0" stroke="#b98a2c" stroke-width="3.2" fill="none"/>
     <path d="M28 25q22 44 44 0" stroke="${gold}" stroke-width="1.6" fill="none" stroke-dasharray="0.1 4.2" stroke-linecap="round"/>
@@ -751,6 +755,7 @@ const thumb = (it, cls = '') => { const u = photoOf(it.code); return u ? `<div c
 const TYPES = {
   G: { name: 'Ghagra / Chaniya', short: 'Ghagra' },
   C: { name: 'Choli / Blouse', short: 'Choli' },
+  GC: { name: 'Ghagra-Choli Set', short: 'GC Set' },
   D: { name: 'Dupatta', short: 'Dupatta' },
   J: { name: 'Jewellery', short: 'Jewellery' },
 };
@@ -1181,6 +1186,7 @@ const PERMS = [
   ['booking.create', 'Create bookings & collect payments'],
   ['return.process', 'Process returns & refunds'],
   ['customer.edit', 'Add / edit customers'],
+  ['customer.id', 'View customer ID proofs (Aadhaar etc.)'],
   ['inventory.view', 'View inventory & availability'],
   ['inventory.edit', 'Add / edit items, prices, repair & lost status'],
   ['inventory.cost', 'See purchase cost & margins'],
@@ -1194,7 +1200,7 @@ const PERMS = [
 ];
 const ROLE_PERMS = {
   admin: PERMS.map(p => p[0]),
-  manager: ['booking.create', 'return.process', 'customer.edit', 'inventory.view', 'inventory.edit', 'inventory.cost', 'sale.create', 'voucher.edit', 'fee.waive', 'booking.void', 'reports.view'],
+  manager: ['booking.create', 'return.process', 'customer.edit', 'customer.id', 'inventory.view', 'inventory.edit', 'inventory.cost', 'sale.create', 'voucher.edit', 'fee.waive', 'booking.void', 'reports.view'],
   staff: ['booking.create', 'return.process', 'customer.edit', 'inventory.view'],
 };
 const ROLE_LABEL = { admin: 'Admin', manager: 'Manager', staff: 'Staff' };
@@ -1752,7 +1758,7 @@ function icard(it, st) {
     <div class="pr"><b>${it.mode === 'sale' ? rs(it.sale) : rs(it.rent)}</b><span class="tiny muted">${it.mode === 'sale' ? 'sale price' : 'per rental'}</span></div></div></button>`;
 }
 function addItemModal() {
-  const nextCode = t => t + pad(Math.max(...DB.items.filter(i => i.type === t).map(i => +i.code.slice(1))) + 1);
+  const nextCode = t => t + pad(Math.max(0, ...DB.items.filter(i => i.type === t).map(i => +i.code.slice(t.length) || 0)) + 1);
   openModal({
     title: 'Add inventory item', wide: true,
     body: `<div class="grid g2">
@@ -1770,7 +1776,7 @@ function addItemModal() {
       <div class="field"><label>Security deposit</label><div class="input-wrap"><span class="pre">₹</span><input class="input" id="ai_dep" type="number" value="1000"></div></div>
       <div class="field" style="grid-column:1/-1"><label>Photos</label><div class="row wrap"><span class="hint">After saving, add photos on the item page (front, back, close-up of the work, any flaws). They are compressed and stored on GitHub.</span></div></div>
       <div class="field" style="grid-column:1/-1"><label>Notes</label><textarea class="input" id="ai_notes" placeholder="Fit notes, pairing suggestions, known flaws…"></textarea></div></div><div id="aiErr" class="err"></div>`,
-    foot: `<button class="btn btn-lg" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-lg" onclick="saveNewItem()">Save item & print tag</button>`,
+    foot: `<button class="btn btn-lg" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-lg" onclick="saveNewItem()">Save item</button>`,
   });
 }
 function saveNewItem() {
@@ -1998,7 +2004,10 @@ function newCustomerModal(prefill = '', after) {
       <div class="field"><label>Mobile number *</label><input class="input" id="nc_m" inputmode="numeric" maxlength="10" value="${isNum ? esc(prefill.replace(/\s/g, '')) : ''}" placeholder="10 digits"></div>
       <div class="field"><label>WhatsApp number</label><input class="input" id="nc_w" inputmode="numeric" maxlength="10" placeholder="Same as mobile"></div>
       <div class="field"><label>Email (optional)</label><input class="input" id="nc_e" type="email"></div>
-      <div class="field" style="grid-column:1/-1"><label>Address (optional)</label><input class="input" id="nc_a" placeholder="Area, Indore"></div></div><div id="ncErr" class="err" style="margin-top:8px"></div>`,
+      <div class="field" style="grid-column:1/-1"><label>Address (optional)</label><input class="input" id="nc_a" placeholder="Area, Indore"></div>
+      <div class="field"><label>ID proof type</label><select class="input" id="nc_it">${ID_TYPES.map(t => `<option>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>ID number — last 4 digits</label><input class="input mono" id="nc_i4" inputmode="numeric" maxlength="4" placeholder="e.g. 4821"></div>
+      <div class="field" style="grid-column:1/-1"><label>ID card photo (front & back)</label><label class="btn btn-soft upbtn" style="justify-content:flex-start">${ic('plus', 18)} <span id="nc_idl">Take / choose photo</span><input type="file" id="nc_idf" accept="image/*" multiple onchange="$('#nc_idl').textContent=this.files.length?this.files.length+' photo(s) selected':'Take / choose photo'"></label><span class="hint">Compressed and saved to GitHub. Only Owner / Manager can view it in the app.</span></div></div><div id="ncErr" class="err" style="margin-top:8px"></div>`,
     foot: `<button class="btn btn-lg" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-lg" id="ncSave">Save customer</button>`,
   });
   $('#ncSave').onclick = () => {
@@ -2007,8 +2016,12 @@ function newCustomerModal(prefill = '', after) {
     if (!/^[6-9]\d{9}$/.test(mob)) return $('#ncErr').textContent = 'Enter a valid 10-digit Indian mobile number.';
     const dup = DB.customers.find(c => c.mobile === mob);
     if (dup) return $('#ncErr').innerHTML = `This mobile already belongs to <b>${esc(dup.name)}</b> (${dup.id}). Duplicate customers are not allowed.`;
-    const c = { id: 'CU-' + (++DB.seq.customer), name, mobile: mob, whatsapp: $('#nc_w').value.replace(/\D/g, '') || mob, email: $('#nc_e').value, address: $('#nc_a').value, notes: '', since: 'Sep 2026' };
+    const i4 = $('#nc_i4').value.replace(/\D/g, '');
+    if (i4 && i4.length !== 4) return $('#ncErr').textContent = 'ID number: enter only the last 4 digits.';
+    const idFiles = [...($('#nc_idf').files || [])];
+    const c = { id: 'CU-' + (++DB.seq.customer), name, mobile: mob, whatsapp: $('#nc_w').value.replace(/\D/g, '') || mob, email: $('#nc_e').value, address: $('#nc_a').value, notes: '', since: 'Sep 2026', idType: $('#nc_it').value, idLast4: i4 };
     DB.customers.push(c); audit('Customer created', c.id, name); closeModal();
+    if (idFiles.length) addPhotos({ files: idFiles }, c.id, 'id');
     toast(`${name} added`, 'good');
     if (after) after(c); else go('#/customer/' + c.id);
   };
@@ -2026,6 +2039,7 @@ function scrCustomer(id) {
     <div class="card pad" style="margin-bottom:16px"><div class="row wrap" style="gap:16px"><div class="avatar" style="width:64px;height:64px;font-size:22px">${initials(c.name)}</div>
       <div class="grow"><h1 class="pg" style="font-size:26px">${esc(c.name)}</h1><div class="muted small" style="margin-top:4px">${c.id} · ${fMob(c.mobile)}${c.whatsapp !== c.mobile ? ' · WA ' + fMob(c.whatsapp) : ''}${c.email ? ' · ' + esc(c.email) : ''}${c.address ? ' · ' + esc(c.address) : ''} · since ${c.since}</div><div class="row wrap" style="margin-top:8px;gap:6px">${flags}</div></div>
       <a class="btn btn-lg" href="tel:+91${c.mobile}">${ic('phone', 18)} Call</a><a class="btn btn-lg btn-wa" target="_blank" rel="noopener" href="https://wa.me/91${c.whatsapp}">${ic('wa', 18)} WhatsApp</a><button class="btn btn-primary btn-lg" onclick="startRental({customerId:'${c.id}'})">${ic('plus', 18)} New Rental</button></div></div>
+    ${idCard(c)}
     <div class="grid g4" style="margin-bottom:16px">
       <div class="card pad"><div class="eyebrow">Rentals</div><div style="font-size:26px;font-weight:800">${s.bs.length}</div></div>
       <div class="card pad"><div class="eyebrow">Total spent</div><div style="font-size:26px;font-weight:800">${rs(s.spent)}</div></div>
@@ -2198,11 +2212,16 @@ function wizSwap(i, code) { if (!code) return; W.lines[i].code = code; W.payAmt 
 function wizAddPkg(key) {
   const p = DB.packages.find(x => x.key === key), pi = W.pkgs.length, used = new Set(W.lines.map(l => l.code));
   const picks = []; let colour = null;
-  for (const t of p.slots) {
-    const cands = DB.items.filter(it => it.type === t && it.mode !== 'sale' && !used.has(it.code) && availability(it.code, W.pickupAt, W.returnBy).ok);
+  const slots = [...p.slots];
+  const free = t => DB.items.filter(it => it.type === t && it.mode !== 'sale' && !used.has(it.code) && availability(it.code, W.pickupAt, W.returnBy).ok);
+  // no separate Ghagra or Choli free: one GC (Ghagra-Choli) set fills both slots
+  if (slots.includes('G') && slots.includes('C') && (!free('G').length || !free('C').length) && free('GC').length) { slots.splice(slots.indexOf('G'), 1, 'GC'); slots.splice(slots.indexOf('C'), 1); }
+  for (let si = 0; si < slots.length; si++) {
+    const t = slots[si];
+    const cands = free(t);
     const best = (colour && cands.find(it => it.colour === colour)) || cands.find(it => it.condition === 'Excellent') || cands[0];
     if (!best) { toast(`No ${TYPES[t].short} free for these dates`, 'bad'); return; }
-    if (t === 'G') colour = best.colour; used.add(best.code); picks.push(best.code);
+    if (t === 'G' || t === 'GC') colour = best.colour; used.add(best.code); picks.push(best.code);
   }
   W.pkgs.push({ key: p.key, name: p.name, price: p.price }); picks.forEach(c => W.lines.push({ code: c, pkg: pi })); W.payAmt = null;
   wizRefresh(); toast(`${p.name} added — ${picks.join(' + ')}. Swap any piece below.`, 'good');
@@ -2897,7 +2916,7 @@ function toTables(db) {
   t.Collections = db.collections.map(c => ({ collection_id: c.id, name: c.name, status: c.status, description: c.desc }));
   t.Items = db.items.map(i => ({ item_code: i.code, type_code: i.type, collection_id: i.collection, name: i.name, colour: i.colour, colour_hex: i.hex, size: i.size, design_style: i.style, purchase_cost: i.cost, rent_price: i.rent, sale_price: i.sale, security_deposit: i.deposit, mode: i.mode, condition: i.condition, physical_status: i.status, notes: i.notes, prev_rentals: i.prev.rentals, prev_revenue: i.prev.revenue, repair_cost: i.repairCost, added_on: i.addedOn }));
   t.Packages = db.packages.map(p => ({ package_id: p.key, name: p.name, price: p.price, description: p.desc, slots: p.slots.join(','), includes_salon_offer: p.salon ? 'yes' : 'no' }));
-  t.Customers = db.customers.map(c => ({ customer_id: c.id, name: c.name, mobile: "'" + c.mobile, whatsapp: "'" + c.whatsapp, email: c.email, address: c.address, customer_since: c.since, omg_salon_client: c.salonClient ? 'yes' : 'no', notes: c.notes }));
+  t.Customers = db.customers.map(c => ({ customer_id: c.id, name: c.name, mobile: "'" + c.mobile, whatsapp: "'" + c.whatsapp, email: c.email, address: c.address, customer_since: c.since, omg_salon_client: c.salonClient ? 'yes' : 'no', notes: c.notes, id_type: c.idType || '', id_last4: c.idLast4 ? "'" + c.idLast4 : '' }));
   const buf = db.settings.bufferHours * 3600e3;
   t.Bookings = []; t.Booking_Items = []; t.Payments = []; t.Booking_Events = []; t.Returns = []; t.Return_Items = [];
   db.bookings.forEach(b => {
@@ -2930,7 +2949,7 @@ function fromTables(t) {
   db.packages = (t.Packages || []).length ? t.Packages.map(r => ({ key: r.package_id, name: r.name, price: num(r.price), desc: r.description, slots: String(r.slots).split(',').map(s => s.trim()).filter(Boolean), salon: yes(r.includes_salon_offer) })) : def.packages;
   const hist = {}; (t.Item_History || []).forEach(r => (hist[r.item_code] = hist[r.item_code] || []).push({ id: r.history_id, at: pd(r.at), by: r.by, text: r.event }));
   db.items = (t.Items || []).map(r => ({ code: r.item_code, type: r.type_code, collection: r.collection_id || 'garba', colour: r.colour, hex: /^#[0-9a-f]{6}$/i.test(r.colour_hex) ? r.colour_hex : (COLOURS[r.colour] || '#b04a8a'), style: r.design_style, size: String(r.size), name: r.name, rent: num(r.rent_price), sale: num(r.sale_price), deposit: num(r.security_deposit), cost: num(r.purchase_cost), mode: r.mode || 'rent', condition: r.condition || 'Good', status: r.physical_status || 'in', notes: r.notes || '', prev: { rentals: num(r.prev_rentals), revenue: num(r.prev_revenue) }, repairCost: num(r.repair_cost), addedOn: String(r.added_on || ''), log: (hist[r.item_code] || []).sort((a, b) => a.at - b.at) }));
-  db.customers = (t.Customers || []).map(r => ({ id: r.customer_id, name: r.name, mobile: String(r.mobile).replace(/\D/g, ''), whatsapp: String(r.whatsapp || r.mobile).replace(/\D/g, ''), email: r.email || '', address: r.address || '', since: r.customer_since || '', salonClient: yes(r.omg_salon_client), notes: r.notes || '' }));
+  db.customers = (t.Customers || []).map(r => ({ id: r.customer_id, name: r.name, mobile: String(r.mobile).replace(/\D/g, ''), whatsapp: String(r.whatsapp || r.mobile).replace(/\D/g, ''), email: r.email || '', address: r.address || '', since: r.customer_since || '', salonClient: yes(r.omg_salon_client), notes: r.notes || '', idType: r.id_type || '', idLast4: r.id_last4 === '' || r.id_last4 == null ? '' : String(r.id_last4).replace(/\D/g, '').padStart(4, '0') }));
   db.vouchers = (t.Vouchers || []).map(r => ({ code: r.code, desc: r.description, issuer: r.issuer || 'OMG Rental', type: r.type, value: num(r.value), maxOff: num(r.max_discount), min: num(r.min_amount), from: pd(r.valid_from), to: pd(r.valid_to), limit: num(r.usage_limit), used: num(r.used), perCustomer: num(r.per_customer), collection: r.collection || 'all', appliesTo: String(r.applies_to).split(',').map(s => s.trim()).filter(Boolean), status: r.status || 'active' }));
   db.users = (t.Users || []).map(r => ({ id: r.user_id, name: r.name, role: r.role, login: r.login, twofa: false, lastActive: '', active: String(r.active).toLowerCase() !== 'no' }));
   db.sales = (t.Sales || []).map(r => ({ id: r.sale_id, code: r.item_code, customerId: r.customer_id || null, walkIn: r.walk_in || null, list: num(r.list_price), discount: num(r.discount), voucher: r.voucher_code || null, price: num(r.price), mode: r.mode, at: pd(r.at), by: r.sold_by, voided: yes(r.voided) }));
@@ -3164,8 +3183,8 @@ async function doClearData() {
 }
 
 /* ---------- Photos: compress in the browser → Apps Script → GitHub (raw URL saved in Item_Photos) ---------- */
-const photoRow = p => ({ photo_id: p.id, item_code: p.code, booking_no: p.booking || '', kind: p.kind, url: p.url, path: p.path || '', size_kb: p.sizeKb || 0, uploaded_at: iso(p.at), uploaded_by: p.by || '', active: p.active === false ? 'no' : 'yes' });
-const photoFromRow = r => ({ id: r.photo_id, code: r.item_code, booking: r.booking_no || '', kind: r.kind || 'item', url: r.url, path: r.path || '', sizeKb: num(r.size_kb), at: pd(r.uploaded_at), by: r.uploaded_by || '', active: String(r.active).toLowerCase() !== 'no' });
+const photoRow = p => ({ photo_id: p.id, item_code: p.kind === 'id' ? '' : p.code, customer_id: p.kind === 'id' ? p.code : '', booking_no: p.booking || '', kind: p.kind, url: p.url, path: p.path || '', size_kb: p.sizeKb || 0, uploaded_at: iso(p.at), uploaded_by: p.by || '', active: p.active === false ? 'no' : 'yes' });
+const photoFromRow = r => ({ id: r.photo_id, code: r.kind === 'id' ? r.customer_id : r.item_code, booking: r.booking_no || '', kind: r.kind || 'item', url: r.url, path: r.path || '', sizeKb: num(r.size_kb), at: pd(r.uploaded_at), by: r.uploaded_by || '', active: String(r.active).toLowerCase() !== 'no' });
 async function compressImage(file, maxSide = 1280, maxKB = 280) {
   const src = URL.createObjectURL(file);
   try {
@@ -3190,14 +3209,14 @@ async function addPhotos(input, code, kind = 'item', bookingNo = '') {
     try {
       const c = await compressImage(f);
       if (!LIVE) { DB.photos.push({ id: uid('PH-'), code, booking: bookingNo, kind, url: URL.createObjectURL(c.blob), sizeKb: c.kb, at: new Date(NOW), by: CUR.name, active: true, local: true }); saved++; continue; }
-      const r = await api('uploadPhoto', { item_code: code, kind, booking_no: bookingNo, data: c.b64 });
+      const r = await api('uploadPhoto', kind === 'id' ? { customer_id: code, kind, data: c.b64 } : { item_code: code, kind, booking_no: bookingNo, data: c.b64 });
       if (!r.ok) { toast(r.error || 'Upload failed', 'bad'); break; }
       const p = photoFromRow(r.photo); DB.photos.push(p);
       SYNCED.Item_Photos = SYNCED.Item_Photos || {}; SYNCED.Item_Photos[p.id] = JSON.stringify(photoRow(p));
       saved++;
     } catch (e) { toast('Upload failed: ' + (e.message || 'check internet'), 'bad'); break; }
   }
-  if (saved) { audit('Photo added', code, `${saved} ${kind} photo(s)${bookingNo ? ' · ' + bookingNo : ''}`); render(); toast(LIVE ? `${saved} photo(s) saved to GitHub` : 'Demo mode: photo shown but not saved', 'good'); }
+  if (saved) { audit('Photo added', code, `${saved} ${kind} photo(s)${bookingNo ? ' · ' + bookingNo : ''}`); render(); toast(LIVE ? `${saved} ${kind === 'id' ? 'ID ' : ''}photo(s) saved to GitHub` : 'Demo mode: photo shown but not saved', 'good'); }
 }
 function photosFor(code, kind, bookingNo) { return (DB.photos || []).filter(p => p.code === code && p.active !== false && (!kind || p.kind === kind) && (bookingNo == null || p.booking === bookingNo)); }
 function photoCard(code) {
@@ -3207,19 +3226,45 @@ function photoCard(code) {
     ${ps.length ? `<div class="pgrid">${ps.map(p => `<div class="ph" onclick="openPhoto('${p.id}')"><img src="${p.url}" alt="" loading="lazy">${p.kind === 'damage' ? `<span class="tagk">Damage ${esc(p.booking)}</span>` : ''}${can('inventory.edit') ? `<button class="rm" title="Remove" onclick="event.stopPropagation();hidePhoto('${p.id}')">${ic('x', 14)}</button>` : ''}</div>`).join('')}</div>`
       : `<div class="hint">No photos yet. Add front, back and a close-up of the work. Photos are compressed (~200 KB) and stored on GitHub; the link is saved in the Item_Photos sheet.</div>`}</div>`;
 }
+/* ---------- Customer ID proof (Aadhaar etc.) — viewing needs the customer.id permission or a manager PIN ---------- */
+const ID_TYPES = ['Aadhaar card', 'Driving licence', 'Voter ID', 'PAN card', 'Passport', 'Other'];
+const IDSHOW = new Set();
+function idCard(c) {
+  const ps = photosFor(c.id, 'id'), show = can('customer.id') || IDSHOW.has(c.id);
+  return `<div class="card pad" style="margin-bottom:16px"><div class="row between wrap" style="margin-bottom:8px;gap:8px"><h3>ID proof ${ps.length ? '<span class="pill st-available">On file</span>' : '<span class="pill st-lost">Missing</span>'}</h3>
+    <div class="row wrap" style="gap:8px">${ps.length && !show ? `<button class="btn btn-sm" onclick="guard('customer.id','View ID proof',()=>{IDSHOW.add('${c.id}');render()})">${ic('eye', 16)} View</button>` : ''}
+    <button class="btn btn-sm" onclick="idInfoModal('${c.id}')">${ic('edit', 16)} Details</button>
+    <label class="btn btn-sm btn-soft upbtn">${ic('plus', 16)} Add ID photo<input type="file" accept="image/*" multiple onchange="addPhotos(this,'${c.id}','id')"></label></div></div>
+    <div class="small muted" style="margin-bottom:8px">${c.idType ? esc(c.idType) + (c.idLast4 ? ' · ending <span class="mono">' + esc(c.idLast4) + '</span>' : '') : 'ID type not recorded'}</div>
+    ${ps.length ? (show ? `<div class="pgrid">${ps.map(p => `<div class="ph" onclick="openPhoto('${p.id}')"><img src="${p.url}" alt="ID proof" loading="lazy"><button class="rm" title="Remove" onclick="event.stopPropagation();hidePhoto('${p.id}')">${ic('x', 14)}</button></div>`).join('')}</div>`
+      : `<div class="hint">${ps.length} ID photo(s) on file. Only Owner / Manager can view them.</div>`) : '<div class="hint">Take a clear photo of the Aadhaar / ID card — front and back.</div>'}</div>`;
+}
+function idInfoModal(id) {
+  const c = cust(id);
+  openModal({ title: 'ID proof details', body: `<div class="grid g2"><div class="field"><label>ID proof type</label><select class="input" id="ii_t">${ID_TYPES.map(t => `<option ${t === c.idType ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>ID number — last 4 digits</label><input class="input mono" id="ii_4" inputmode="numeric" maxlength="4" value="${esc(c.idLast4 || '')}"></div></div><div id="iiErr" class="err" style="margin-top:8px"></div>`,
+    foot: `<button class="btn btn-lg" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-lg" onclick="saveIdInfo('${id}')">Save</button>` });
+}
+function saveIdInfo(id) {
+  const c = cust(id), d = $('#ii_4').value.replace(/\D/g, '');
+  if (d && d.length !== 4) return $('#iiErr').textContent = 'Enter only the last 4 digits.';
+  c.idType = $('#ii_t').value; c.idLast4 = d; audit('ID details updated', c.id, c.idType); closeModal(); render(); toast('ID details saved', 'good');
+}
 function miniPhotos(code, bookingNo) {
   const ps = photosFor(code, 'damage', bookingNo);
   return ps.length ? `<div class="mini-ph">${ps.map(p => `<img src="${p.url}" alt="damage photo" onclick="event.stopPropagation();openPhoto('${p.id}')">`).join('')}</div>` : '';
 }
 function openPhoto(id) {
   const p = DB.photos.find(x => x.id === id); if (!p) return;
-  openModal({ title: `${esc(p.code)} · ${p.kind === 'damage' ? 'Damage photo' : 'Photo'}`, wide: true,
+  if (p.kind === 'id' && !can('customer.id') && !IDSHOW.has(p.code)) return guard('customer.id', 'View ID proof', () => { IDSHOW.add(p.code); openPhoto(id); });
+  openModal({ title: `${esc(p.code)} · ${p.kind === 'damage' ? 'Damage photo' : p.kind === 'id' ? 'ID proof' : 'Photo'}`, wide: true,
     body: `<img src="${p.url}" alt="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px;background:var(--bg-2)"><div class="small muted" style="margin-top:8px">${p.at ? fDT(p.at) : ''} · ${esc(p.by)} · ${p.sizeKb} KB${p.booking ? ' · ' + esc(p.booking) : ''}</div>`,
     foot: `${p.local ? '' : `<a class="btn btn-lg" href="${p.url}" target="_blank" rel="noopener">Open raw URL</a>`}<button class="btn btn-primary btn-lg" onclick="closeModal()">Close</button>` });
 }
 function hidePhoto(id) {
-  guard('inventory.edit', 'Remove photo', () => {
-    const p = DB.photos.find(x => x.id === id); if (!p) return;
+  const p0 = DB.photos.find(x => x.id === id); if (!p0) return;
+  guard(p0.kind === 'id' ? 'customer.id' : 'inventory.edit', 'Remove photo', () => {
+    const p = p0;
     p.active = false; audit('Photo removed', p.code, p.path || p.id); render();
     toast('Photo removed from the app (the file stays in GitHub history)', 'good');
   });
