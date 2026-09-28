@@ -1981,6 +1981,75 @@ async function downloadTag(code) {
   try { saveBlob(await tagPNG(it), 'QR-' + it.code + '.png'); toast('QR-' + it.code + '.png downloaded', 'good'); }
   catch (e) { toast('Could not make the QR — check internet', 'bad'); }
 }
+/* Booking receipt as a PNG image (shop header, customer, dates, items, money, payments) */
+function loadImg(src) { return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+async function receiptPNG(b) {
+  const c = cust(b.customerId) || { name: '', mobile: '', id: '' }, m = money(b), s = S(), em = (typeof emS === 'function' ? emS() : {}) || {};
+  const logo = await loadImg('omg-logo.jpg');
+  const W = 820, P = 44, cv = document.createElement('canvas'); cv.width = W; cv.height = 4000;
+  const x = cv.getContext('2d'), F = (w, px, mono) => x.font = w + ' ' + px + 'px ' + (mono ? 'ui-monospace, Consolas, monospace' : 'system-ui, Arial, sans-serif');
+  const fit = (t, max) => { t = String(t || ''); if (x.measureText(t).width <= max) return t; while (t && x.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; };
+  const KIND = { rent: 'Rent paid', deposit: 'Deposit paid', topup: 'Extra collected', refund: 'Deposit refund', damage: 'Damage charge', late: 'Late fee', rent_refund: 'Rent refund' };
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, cv.height);
+  x.fillStyle = '#7a1f4b'; x.fillRect(0, 0, W, 10);
+  let y = 40;
+  const lx = logo ? P + 100 : P;
+  if (logo) x.drawImage(logo, P, y, 84, 84);
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillStyle = '#7a1f4b'; F('800', 34); x.fillText(s.shopName || 'OMG Rental', lx, y + 36);
+  x.fillStyle = '#555'; F('400', 18); x.fillText(fit('Garba chaniya-choli rental · ' + (s.city || 'Indore'), W - lx - P), lx, y + 62);
+  x.fillText(fit('📞 ' + (em.businessPhone || '7610544284') + (em.businessAddress ? ' · ' + em.businessAddress : ''), W - lx - P), lx, y + 86);
+  y += 120;
+  const rule = (dash) => { x.strokeStyle = '#ddd'; x.lineWidth = 2; x.setLineDash(dash ? [8, 6] : []); x.beginPath(); x.moveTo(P, y); x.lineTo(W - P, y); x.stroke(); x.setLineDash([]); };
+  rule(); y += 44;
+  x.fillStyle = '#111'; F('800', 26); x.fillText('RENTAL RECEIPT', P, y);
+  x.textAlign = 'right'; F('800', 26, true); x.fillText(b.no, W - P, y); x.textAlign = 'left';
+  y += 28; x.fillStyle = '#777'; F('400', 17); x.fillText('Booked ' + fDT(b.createdAt) + ' by ' + (b.createdBy || '') + ' · printed ' + fDT(new Date()), P, y);
+  y += 40;
+  const kv = (k, v, bold, color) => { x.fillStyle = '#555'; F('400', 20); x.fillText(k, P, y); x.textAlign = 'right'; x.fillStyle = color || '#111'; F(bold ? '800' : '600', 20); x.fillText(fit(v, W - 2 * P - 260), W - P, y); x.textAlign = 'left'; y += 34; };
+  kv('Customer', c.name, true); kv('Mobile', fMob(c.mobile) + (c.id ? ' · ' + c.id : ''));
+  kv('Pickup', fDate(b.pickupAt) + ' · ' + fHHMM(s.pickupStart) + '–' + fHHMM(s.pickupEnd));
+  kv('Event', fDate(b.eventDate));
+  kv('Return by', fDate(b.returnBy) + ' · before ' + fTime(b.returnBy), true, '#7a1f4b');
+  y += 4; rule(true); y += 40;
+  x.fillStyle = '#111'; F('800', 21); x.fillText('Items', P, y); x.textAlign = 'right'; x.fillText('Rent', W - P, y); x.textAlign = 'left'; y += 34;
+  b.lines.forEach(l => {
+    const it = item(l.code) || { code: l.code, name: '', size: '' };
+    F('700', 19, true); x.fillStyle = '#7a1f4b'; x.fillText(it.code, P, y);
+    const cw = x.measureText(it.code + '  ').width;
+    F('600', 19); x.fillStyle = '#111'; x.fillText(fit(it.name, W - 2 * P - cw - 130), P + cw, y);
+    x.textAlign = 'right'; x.fillText(rs(l.alloc), W - P, y); x.textAlign = 'left';
+    y += 24; F('400', 16); x.fillStyle = '#777'; x.fillText(fit([it.size, 'deposit ' + rs(l.deposit)].filter(Boolean).join(' · '), W - 2 * P), P + cw, y); y += 32;
+  });
+  if (b.pkgs && b.pkgs.length) { F('400', 16); x.fillStyle = '#777'; x.fillText(fit('Package: ' + b.pkgs.map(p => p.name).join(', '), W - 2 * P), P, y); y += 30; }
+  rule(true); y += 40;
+  kv('Rent (list)', rs(b.rentGross));
+  if (b.discount) kv(b.voucher ? 'Voucher ' + b.voucher : 'Offer discount', '−' + rs(b.discount), false, '#2f7a4f');
+  kv('Rent payable', rs(m.rentNet), true);
+  kv('Security deposit (refundable)', rs(b.depositDue));
+  if (b.payments.length) {
+    y += 4; x.fillStyle = '#111'; F('800', 19); x.fillText('Payments', P, y); y += 30;
+    b.payments.forEach(p => { const neg = ['refund', 'rent_refund'].includes(p.kind); F('400', 17); x.fillStyle = '#555'; x.fillText(fit(fDT(p.at) + ' · ' + (KIND[p.kind] || p.kind) + ' · ' + p.mode, W - 2 * P - 150), P, y); x.textAlign = 'right'; x.fillStyle = neg ? '#b3261e' : '#111'; F('600', 17); x.fillText((neg ? '−' : '') + rs(p.amount), W - P, y); x.textAlign = 'left'; y += 28; });
+    y += 6;
+  }
+  kv('Total paid', rs(m.rentPaid + m.depPaid + m.topup), true);
+  kv('Deposit held', rs(m.held));
+  if (b.returnInfo) { if (m.damage) kv('Damage', rs(m.damage)); if (m.late) kv('Late fee', rs(m.late)); kv('Refunded', rs(m.refunded) + (b.returnInfo.refundMode ? ' · ' + b.returnInfo.refundMode : '')); }
+  y += 4; x.fillStyle = m.outstanding ? '#fdecef' : '#e8f4ec'; x.fillRect(P, y - 4, W - 2 * P, 58);
+  x.fillStyle = m.outstanding ? '#b3261e' : '#2f7a4f'; F('800', 24); x.fillText(m.outstanding ? 'Balance to pay' : 'Fully paid', P + 18, y + 34);
+  x.textAlign = 'right'; x.fillText(rs(m.outstanding), W - P - 18, y + 34); x.textAlign = 'left'; y += 90;
+  x.fillStyle = '#555'; F('400', 16);
+  ['Please bring a photo ID at pickup. The deposit is refunded after the outfit is returned and checked.', 'Late return: ' + lateRuleText().replace('After', 'after') + '.', 'Thank you for choosing ' + (s.shopName || 'OMG Rental') + ' — Happy Navratri! 🙏']
+    .forEach(t => { const words = t.split(' '); let line = ''; words.forEach(w => { if (x.measureText(line + w).width > W - 2 * P) { x.fillText(line.trim(), P, y); y += 24; line = ''; } line += w + ' '; }); x.fillText(line.trim(), P, y); y += 28; });
+  y += 14; x.fillStyle = '#7a1f4b'; x.fillRect(0, y, W, 10); y += 10;
+  const out = document.createElement('canvas'); out.width = W; out.height = y; out.getContext('2d').drawImage(cv, 0, 0);
+  return new Promise(res => out.toBlob(res, 'image/png'));
+}
+async function downloadReceipt(no) {
+  const b = bk(no); if (!b) return;
+  try { saveBlob(await receiptPNG(b), 'Receipt-' + b.no + '.png'); toast('Receipt-' + b.no + '.png downloaded', 'good'); }
+  catch (e) { toast('Could not make the receipt', 'bad'); }
+}
 async function downloadTags(codes) {
   const btn = $('#dlTagsBtn'); if (btn) btn.disabled = true;
   let n = 0;
@@ -2419,13 +2488,14 @@ function scrBooking(no, r) {
   if (b.status === 'returned_pending') acts.push(`<button class="btn btn-primary btn-lg btn-block" onclick="go('#/return/${no}')">${ic('eye', 20)} Complete Inspection</button>`);
   if (['reserved', 'picked'].includes(b.status) && m.outstanding) acts.push(`<button class="btn btn-lg btn-block" onclick="payModal('${no}')">${ic('wallet', 18)} Record payment · ${rs(m.outstanding)} due</button>`);
   acts.push(`<button class="btn btn-lg btn-block btn-wa" onclick="waModal('${no}','${b.status === 'closed' ? 'refund' : b.status === 'picked' ? (isOverdue(b) ? 'overdue' : 'reminder') : 'confirm'}')">${ic('wa', 18)} WhatsApp customer</button>`);
+  if (!['void', 'cancelled'].includes(b.status)) acts.push(`<button class="btn btn-lg btn-block" onclick="downloadReceipt('${no}')">${ic('print', 18)} Download receipt (PNG)</button>`);
   if (b.status === 'reserved') acts.push(`<button class="btn btn-block btn-ghost" style="color:var(--danger)" onclick="guard('booking.void','Cancel booking ${no}',by=>cancelModal('${no}',by))">Cancel booking…</button>`);
   if (!['void', 'cancelled'].includes(b.status)) acts.push(`<button class="btn btn-block btn-ghost btn-sm muted" onclick="guard('booking.void','Void booking ${no}',by=>voidModal('${no}',by))">Void (error correction)…</button>`);
   return {
     t: `Booking ${b.no}`, s: c.name, html: `
     ${isNew ? `<div class="success-hero" style="margin-bottom:18px"><div class="tick">${ic('check', 38, 3)}</div><h1 class="pg">Booking confirmed</h1>
       <p class="muted" style="margin:6px 0 16px"><b class="mono" style="color:var(--ink)">${b.no}</b> · ${esc(c.name)} · ${rs(sum(b.payments.filter(p => ['rent', 'deposit'].includes(p.kind)), p => p.amount))} received${b.payments[0] ? ' via ' + b.payments[0].mode : ''}</p>
-      <div class="row wrap" style="justify-content:center"><button class="btn btn-lg btn-good" onclick="waModal('${no}','confirm')">${ic('wa', 18)} Send WhatsApp confirmation</button><button class="btn btn-lg" onclick="toast('Receipt sent to printer (simulated)','good')">${ic('print', 18)} Print receipt</button>
+      <div class="row wrap" style="justify-content:center"><button class="btn btn-lg btn-good" onclick="waModal('${no}','confirm')">${ic('wa', 18)} Send WhatsApp confirmation</button><button class="btn btn-lg" onclick="downloadReceipt('${no}')">${ic('print', 18)} Download receipt</button>
       ${b.status === 'reserved' && sameDay(b.pickupAt, NOW) ? `<button class="btn btn-lg" onclick="handoverModal('${no}')">${ic('bag', 18)} Hand over now</button>` : ''}<button class="btn btn-lg btn-primary" onclick="go('#/dashboard')">${ic('home', 18)} Back to Dashboard</button></div></div>` : ''}
     <div class="pagehead"><div class="grow"><div class="row wrap"><span class="eyebrow">Booking</span>${bpill(b)}${b.voucher ? `<span class="pill" style="background:var(--accent-soft);color:var(--accent-2)">${ic('ticket', 13)} ${b.voucher}</span>` : ''}</div><h1 class="pg mono" style="font-family:inherit">${b.no}</h1><p>Created ${fDT(b.createdAt)} by ${esc(b.createdBy)}</p></div></div>
     <div class="split"><div class="stack s16">

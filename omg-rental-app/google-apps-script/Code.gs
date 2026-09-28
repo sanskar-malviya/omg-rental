@@ -590,6 +590,8 @@ function eCard(title, inner) {
     inner + '</td></tr></table></td></tr>';
 }
 function eTable(rows) { return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' + rows.join('') + '</table>'; }
+/* small PNG icons hosted with the app (emoji and SVG do not show in every mail app) */
+function eIcon(em, name, size) { var base = String(em.appUrl || 'https://omgrental.netlify.app/'); if (base.slice(-1) !== '/') base += '/'; size = size || 18; return '<img src="' + escH(base + 'email/' + name + '.png') + '" width="' + size + '" height="' + size + '" alt="" style="display:inline-block;width:' + size + 'px;height:' + size + 'px;vertical-align:middle;border:0;margin:-3px 8px 0 0">'; }
 function eBtn(href, label, bg, fg) {
   return '<table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-block;margin:4px 6px 4px 0"><tr><td bgcolor="' + bg + '" style="border-radius:10px;background:' + bg + '">' +
     '<a href="' + escH(href) + '" style="display:inline-block;padding:12px 20px;font:700 14px/1 Arial,Helvetica,sans-serif;color:' + (fg || '#ffffff') + ';text-decoration:none;border-radius:10px">' + label + '</a></td></tr></table>';
@@ -657,9 +659,9 @@ function renderEmail(key, ctx, em, meta, over) {
   var subject = fillVars(t.subject, v, false);
   var intro = fillVars(t.intro, v, true).replace(/\n/g, '<br>');
   var cta = (t.cta || []).map(function (c) {
-    if (c === 'call' && phone) return eBtn('tel:+91' + phone.slice(-10), '📞 Call ' + escH(em.businessPhone), BR.maroon);
-    if (c === 'whatsapp' && phone) return eBtn('https://wa.me/91' + phone.slice(-10) + '?text=' + encodeURIComponent('Hi OMG Rental, about booking ' + v.booking_number), '💬 WhatsApp us', '#1f9d55');
-    if (c === 'directions' && em.mapsLink) return eBtn(em.mapsLink, '📍 Get directions', '#ffffff', BR.maroon);
+    if (c === 'call' && phone) return eBtn('tel:+91' + phone.slice(-10), eIcon(em, 'call-white') + 'Call ' + escH(em.businessPhone), BR.maroon);
+    if (c === 'whatsapp' && phone) return eBtn('https://wa.me/91' + phone.slice(-10) + '?text=' + encodeURIComponent('Hi OMG Rental, about booking ' + v.booking_number), eIcon(em, 'wa-white') + 'WhatsApp us', '#1f9d55');
+    if (c === 'directions' && em.mapsLink) return eBtn(em.mapsLink, eIcon(em, 'pin-maroon') + 'Get directions', '#ffffff', BR.maroon);
     return '';
   }).join('');
   var base = ''; try { base = ScriptApp.getService().getUrl() || ''; } catch (x) { }
@@ -681,7 +683,7 @@ function renderEmail(key, ctx, em, meta, over) {
     '<tr><td style="padding:22px 28px 26px"><div style="font:14px/1.6 Arial,Helvetica,sans-serif;color:#4b3a42">With love,<br><b>Team OMG Rental</b></div></td></tr>' +
     '<tr><td bgcolor="' + BR.cream + '" style="background:' + BR.cream + ';padding:20px 28px;border-top:1px solid ' + BR.line + '">' +
     '<div style="font:700 14px/1.5 Arial,Helvetica,sans-serif;color:' + BR.ink + '">OMG Rental · linked with OMG Salon</div>' +
-    '<div style="font:13px/1.6 Arial,Helvetica,sans-serif;color:' + BR.muted + '">' + escH(em.businessAddress) + '<br>📞 <a href="tel:+91' + phone.slice(-10) + '" style="color:' + BR.maroon + ';text-decoration:none;font-weight:700">' + escH(em.businessPhone) + '</a>' +
+    '<div style="font:13px/1.6 Arial,Helvetica,sans-serif;color:' + BR.muted + '">' + escH(em.businessAddress) + '<br>' + eIcon(em, 'call-maroon', 14) + '<a href="tel:+91' + phone.slice(-10) + '" style="color:' + BR.maroon + ';text-decoration:none;font-weight:700">' + escH(em.businessPhone) + '</a>' +
     (em.appUrl ? ' · <a href="' + escH(em.appUrl) + '#/catalog" style="color:' + BR.maroon + '">See our collection</a>' : '') + '</div>' +
     '<div style="font:11px/1.5 Arial,Helvetica,sans-serif;color:#a3949a;margin-top:10px">You are receiving this email about your booking with OMG Rental.' + (unsub ? ' <a href="' + escH(unsub) + '" style="color:#a3949a">Stop these emails</a>.' : '') + '</div></td></tr>' +
     '</table></td></tr></table></body></html>';
