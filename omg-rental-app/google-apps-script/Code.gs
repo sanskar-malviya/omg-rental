@@ -161,6 +161,17 @@ function resetData(user, pin) {
    The token never leaves Apps Script. The app sends an already-compressed JPEG. */
 var DEFAULT_PHOTO_REPO = 'sanskar-malviya/omg-rental';
 var DEFAULT_PHOTO_BRANCH = 'photos';
+/* Run this once from the editor: it asks Google for the "Connect to an external service"
+   permission and checks that the GitHub token works. */
+function connectGithub() {
+  var P = PropertiesService.getScriptProperties();
+  var token = P.getProperty('GITHUB_TOKEN'), repo = P.getProperty('GITHUB_REPO') || DEFAULT_PHOTO_REPO, branch = P.getProperty('GITHUB_BRANCH') || DEFAULT_PHOTO_BRANCH;
+  if (!token) { Logger.log('❌ GITHUB_TOKEN is missing — add it in Project Settings → Script Properties.'); return; }
+  var res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/branches/' + branch, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }, muteHttpExceptions: true });
+  var code = res.getResponseCode();
+  Logger.log(code === 200 ? '✅ GitHub connected: ' + repo + ' (branch ' + branch + '). Photo uploads are ready.'
+                          : '❌ GitHub said ' + code + ': ' + res.getContentText().slice(0, 200));
+}
 function photosEnabled() {
   return !!PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
 }
