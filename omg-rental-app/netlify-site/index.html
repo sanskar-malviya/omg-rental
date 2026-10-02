@@ -1002,6 +1002,14 @@ const TYPES = {
   D: { name: 'Dupatta', short: 'Dupatta' },
   J: { name: 'Jewellery', short: 'Jewellery' },
 };
+/* Colour dot for an item: its own hex code, else a known colour name, else the first plain colour word ("Dark Blue / Multicolour" → blue) */
+const BASIC_COLOURS = { black: '#1f1f1f', white: '#f2efe9', 'dark blue': '#1d2f6b', 'midnight blue': '#1d2f6b', navy: '#1d2f6b', blue: '#2c4fa3', maroon: '#7d1d34', red: '#c62828', yellow: '#e3b417', green: '#2e7d32', pink: '#d6246e', orange: '#e66a1f', purple: '#6b3fa0', teal: '#0f7c8c', gold: '#c99a2e', silver: '#9aa0a6', cream: '#efe3c8', brown: '#7a4a2a', grey: '#7a7a7a', gray: '#7a7a7a', multicolour: '#b04a8a' };
+function colourHex(hex, colour) {
+  if (/^#[0-9a-f]{6}$/i.test(hex) && hex.toLowerCase() !== '#b04a8a') return hex;
+  if (COLOURS[colour]) return COLOURS[colour];
+  const c = String(colour || '').toLowerCase(), k = Object.keys(BASIC_COLOURS).filter(k => c.includes(k)).sort((a, b) => c.indexOf(a) - c.indexOf(b) || b.length - a.length)[0];
+  return k ? BASIC_COLOURS[k] : (/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#b04a8a');
+}
 const COLOURS = {
   'Parrot Green': '#3f9b4a', 'Rani Pink': '#d6246e', 'Royal Blue': '#2c4fa3', 'Marigold': '#e39a17', 'Maroon': '#7d1d34',
   'Peacock Blue': '#0f7c83', 'Mustard': '#c29a1e', 'Black': '#2b2b2b', 'Red': '#c62c2c', 'Purple': '#6a3a9c',
@@ -1897,7 +1905,7 @@ function scrDashboard() {
   const tileColor = { available: 'var(--good)', rented: 'var(--violet)', reserved: 'var(--info)', ret: 'var(--accent)', over: 'var(--danger)', repair: 'var(--repair)', sold: 'var(--slate)' };
   return {
     t: 'Dashboard', s: `${fDate(NOW)} · ${fTime(NOW)}`, html: `
-    <div class="hero"><div class="grow"><div class="eyebrow">${fDate(NOW)} · ${fTime(NOW)} · Garba 2026 season</div><h1 class="pg">${greet}, ${esc(CUR.name.split(' — ')[0])}</h1>
+    <div class="hero"><div class="grow"><div class="eyebrow">${fDate(NOW)} · ${fTime(NOW)} · Garba ${NOW.getFullYear()} season</div><h1 class="pg">${greet}, ${esc(CUR.name.split(' — ')[0])}</h1>
       <p class="muted" style="margin:6px 0 0">${d.dueAll.length} returns due before ${fHHMM(s.returnDeadline)} · ${d.pickups.length} pickups ${fHHMM(s.pickupStart)}–${fHHMM(s.pickupEnd)}${d.overdue.length ? ` · <b style="color:var(--danger)">${d.overdue.length} overdue</b>` : ''}</p></div>
       <div class="hero-actions"><a class="btn btn-primary btn-lg" href="#/new" onclick="W=null">${ic('plus', 20, 2.6)} New Rental</a><button class="btn btn-lg" onclick="go('#/returns')">${ic('ret', 20)} Process Return</button>${can('sale.create') ? `<button class="btn btn-lg" onclick="go('#/sale/new')">${ic('tag', 20)} Sell Item</button>` : ''}</div></div>
 
@@ -2850,9 +2858,10 @@ function scrReturns(r) {
 }
 
 /* ---------- CALENDAR ---------- */
-const CAL = { y: 2026, m: 8, sel: null };
+const CAL = { y: null, m: null, sel: null };   // opens on the current month
 function scrCalendar() {
   tourMark('cal');
+  if (CAL.y == null) { CAL.y = NOW.getFullYear(); CAL.m = NOW.getMonth(); }
   if (!CAL.sel) CAL.sel = isoDay(NOW);
   const first = new Date(CAL.y, CAL.m, 1), dim = new Date(CAL.y, CAL.m + 1, 0).getDate();
   const lead = (first.getDay() + 6) % 7, weeks = Math.ceil((lead + dim) / 7), start = addDays(first, -lead);
@@ -2999,7 +3008,7 @@ function saveVoucher() {
 const REP = { tab: 'revenue', range: 'season' };
 function repRange() {
   const t0 = sod(NOW);
-  return { today: [t0, addDays(t0, 1), 'Today'], week: [addDays(t0, -6), addDays(t0, 1), 'Last 7 days'], season: [D(2026, 9, 1), D(2026, 11, 1), 'Garba season (Sep–Oct)'], all: [D(2000, 1, 1), D(2100, 1, 1), 'All time'] }[REP.range];
+  return { today: [t0, addDays(t0, 1), 'Today'], week: [addDays(t0, -6), addDays(t0, 1), 'Last 7 days'], season: [D(NOW.getFullYear(), 9, 1), D(NOW.getFullYear(), 11, 1), 'Garba season (Sep–Oct)'], all: [D(2000, 1, 1), D(2100, 1, 1), 'All time'] }[REP.range];
 }
 function itemPerf(it) {
   const bs = bookingsFor(it.code).filter(b => !['cancelled', 'void', 'reserved'].includes(b.status));
@@ -3301,7 +3310,7 @@ function fromTables(t) {
   db.collections = (t.Collections || []).length ? t.Collections.map(r => ({ id: r.collection_id, name: r.name, status: r.status, desc: r.description })) : def.collections;
   db.packages = (t.Packages || []).length ? t.Packages.map(r => ({ key: r.package_id, name: r.name, price: num(r.price), desc: r.description, slots: String(r.slots).split(',').map(s => s.trim()).filter(Boolean), salon: yes(r.includes_salon_offer) })) : def.packages;
   const hist = {}; (t.Item_History || []).forEach(r => (hist[r.item_code] = hist[r.item_code] || []).push({ id: r.history_id, at: pd(r.at), by: r.by, text: r.event }));
-  db.items = (t.Items || []).map(r => ({ code: r.item_code, type: r.type_code, collection: r.collection_id || 'garba', colour: r.colour, hex: /^#[0-9a-f]{6}$/i.test(r.colour_hex) ? r.colour_hex : (COLOURS[r.colour] || '#b04a8a'), style: r.design_style, size: String(r.size), name: r.name, rent: num(r.rent_price), sale: num(r.sale_price), deposit: num(r.security_deposit), cost: num(r.purchase_cost), mode: r.mode || 'rent', condition: r.condition || 'Good', status: r.physical_status || 'in', notes: r.notes || '', prev: { rentals: num(r.prev_rentals), revenue: num(r.prev_revenue) }, repairCost: num(r.repair_cost), addedOn: String(r.added_on || ''), log: (hist[r.item_code] || []).sort((a, b) => a.at - b.at) }));
+  db.items = (t.Items || []).map(r => ({ code: r.item_code, type: r.type_code, collection: r.collection_id || 'garba', colour: r.colour, hex: colourHex(r.colour_hex, r.colour), style: r.design_style, size: String(r.size), name: r.name, rent: num(r.rent_price), sale: num(r.sale_price), deposit: num(r.security_deposit), cost: num(r.purchase_cost), mode: r.mode || 'rent', condition: r.condition || 'Good', status: r.physical_status || 'in', notes: r.notes || '', prev: { rentals: num(r.prev_rentals), revenue: num(r.prev_revenue) }, repairCost: num(r.repair_cost), addedOn: String(r.added_on || ''), log: (hist[r.item_code] || []).sort((a, b) => a.at - b.at) }));
   db.customers = (t.Customers || []).map(r => ({ id: r.customer_id, name: r.name, mobile: String(r.mobile).replace(/\D/g, ''), whatsapp: String(r.whatsapp || r.mobile).replace(/\D/g, ''), email: r.email || '', address: r.address || '', since: r.customer_since || '', salonClient: yes(r.omg_salon_client), notes: r.notes || '', prefs: { email: String(r.email_opt).toLowerCase() !== 'no', whatsapp: String(r.whatsapp_opt).toLowerCase() !== 'no', sms: String(r.sms_opt).toLowerCase() !== 'no', marketing: String(r.marketing_opt).toLowerCase() === 'yes' }, idType: r.id_type || '', idLast4: r.id_last4 === '' || r.id_last4 == null ? '' : String(r.id_last4).replace(/\D/g, '').padStart(4, '0') }));
   db.vouchers = (t.Vouchers || []).map(r => ({ code: r.code, desc: r.description, issuer: r.issuer || 'OMG Rental', type: r.type, value: num(r.value), maxOff: num(r.max_discount), min: num(r.min_amount), from: pd(r.valid_from), to: pd(r.valid_to), limit: num(r.usage_limit), used: num(r.used), perCustomer: num(r.per_customer), collection: r.collection || 'all', appliesTo: String(r.applies_to).split(',').map(s => s.trim()).filter(Boolean), status: r.status || 'active' }));
   db.users = (t.Users || []).map(r => ({ id: r.user_id, name: r.name, role: r.role, login: r.login, twofa: false, lastActive: '', active: String(r.active).toLowerCase() !== 'no' }));
@@ -3696,7 +3705,7 @@ async function renderPublic() {
   P.innerHTML = '<div class="ptoran" aria-hidden="true"></div>' + pubTop() + (m ? pubItem(m[1].toUpperCase()) : pubList()) + pubStore() + pubFoot();
   revMaybe(!!m);
 }
-const pubHex = it => /^#[0-9a-f]{6}$/i.test(it.hex) ? it.hex : (COLOURS[it.colour] || '#b04a8a');
+const pubHex = it => colourHex(it.hex, it.colour);
 const pubType = it => (TYPES[it.type] || { name: it.type }).name;
 const PUB_MODE = { rent: 'On rent', both: 'On rent · also for sale', sale: 'For sale' };
 function pubTop() {
@@ -3775,7 +3784,7 @@ function pubList() {
     <div class="psearch glass" id="psearch">
       <div class="sbox"><span class="si">${ic('search', 20)}</span><input id="pq" type="search" enterkeyhint="search" autocomplete="off" placeholder="Search red, mirror-work, dupatta…" value="${esc(PUBQ.q)}" oninput="pubSearch(this.value)">
         <button class="fbtn ${PUBQ.filt ? 'on' : ''}" onclick="PUBQ.filt=!PUBQ.filt;renderPublic()" aria-expanded="${PUBQ.filt}">${ic('list', 18)}<span>Filters</span>${nFilt ? `<em>${nFilt}</em>` : ''}</button></div>
-      <div class="ptypes scroll">${[['all', 'All'], ...types.map(k => [k, TYPES[k].short])].map(([k, l]) => `<button class="ptchip ${PUBQ.type === k ? 'on' : ''} ${count(k) ? '' : 'none'}" onclick="PUBQ.type='${k}';renderPublic()">${k === 'all' ? `<span class="ti">${ic('sparkle', 18)}</span>` : `<span class="ti">${art(k, PUBQ.type === k ? '#ffffff' : '#b0265e', 26)}</span>`}<span>${l}</span><small>${count(k)}</small></button>`).join('')}</div>
+      <div class="ptypes scroll">${[['all', 'All'], ...types.map(k => [k, TYPES[k].short]).sort((a, b) => (count(b[0]) > 0) - (count(a[0]) > 0))].map(([k, l]) => `<button class="ptchip ${PUBQ.type === k ? 'on' : ''} ${count(k) ? '' : 'none'}" onclick="PUBQ.type='${k}';renderPublic()">${k === 'all' ? `<span class="ti">${ic('sparkle', 18)}</span>` : `<span class="ti">${art(k, PUBQ.type === k ? '#ffffff' : '#b0265e', 26)}</span>`}<span>${l}</span><small>${count(k)}</small></button>`).join('')}</div>
       ${PUBQ.filt ? `<div class="pfilt">
         <div class="lbl">Colour</div><div class="swatches">${pubColours().map(([n, h]) => `<button class="sw ${PUBQ.colour === n ? 'on' : ''}" style="--c:${h}" title="${esc(n)}" onclick="pubSet('colour',${esc(JSON.stringify(n))})"><i></i><span>${esc(n)}</span></button>`).join('')}</div>
         <div class="lbl">Size</div><div class="chips scroll">${pubSizes().map(z => `<button class="chip ${PUBQ.size === z ? 'on' : ''}" onclick="pubSet('size',${esc(JSON.stringify(z))})">${esc(z)}</button>`).join('')}</div>
