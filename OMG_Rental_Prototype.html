@@ -964,9 +964,13 @@ function art(type, hex, size = 100) {
     <path d="M28 88h44" stroke="${gold}" stroke-width="5"/>
     <path d="M31 91v5M37 91v5M43 91v5M49 91v5M55 91v5M61 91v5M67 91v5" stroke="${gold}" stroke-width="1.8"/>
     <path d="M20 14q30 10 60 0" stroke="${gold}" stroke-width="3" fill="none"/>`;
-  else if (type === 'GC') {   // Ghagra + Choli rented / sold together as one set
+  else if (type === 'GC' || type === 'GB') {   // Ghagra + Choli/Blouse rented / sold together as one set
     const inner = t => art(t, hex).replace(/^<svg[^>]*>|<\/svg>$/g, '');
     body = `<g transform="translate(16 34) scale(.68)">${inner('G')}</g><g transform="translate(20 2) scale(.6)">${inner('C')}</g>`;
+  }
+  else if (type === 'GBC') {   // full set: Ghagra + Blouse + Chunni (dupatta)
+    const inner = t => art(t, hex).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+    body = `<g transform="translate(44 6) scale(.56)">${inner('D')}</g><g transform="translate(6 36) scale(.64)">${inner('G')}</g><g transform="translate(8 4) scale(.54)">${inner('C')}</g>`;
   }
   else body = `
     <path d="M24 22q26 54 52 0" stroke="#b98a2c" stroke-width="3.2" fill="none"/>
@@ -992,6 +996,8 @@ const TYPES = {
   G: { name: 'Ghagra / Chaniya', short: 'Ghagra' },
   C: { name: 'Choli / Blouse', short: 'Choli' },
   GC: { name: 'Ghagra-Choli Set', short: 'GC Set' },
+  GBC: { name: 'Ghagra-Blouse-Chunni Set (full set)', short: 'GBC Set' },
+  GB: { name: 'Ghagra-Blouse Set (2-piece)', short: 'GB Set' },
   D: { name: 'Dupatta', short: 'Dupatta' },
   J: { name: 'Jewellery', short: 'Jewellery' },
 };
@@ -1199,6 +1205,7 @@ function conflicts(code, start, end, excludeNo) {
 function availability(code, start, end, excludeNo) {
   const it = item(code);
   if (!it) return { ok: false, reason: 'Unknown item code' };
+  if (it.removed) return { ok: false, reason: 'No longer in inventory' };
   if (it.status === 'sold') return { ok: false, reason: 'Sold' };
   if (it.status === 'lost') return { ok: false, reason: 'Marked lost' };
   if (it.mode === 'sale') return { ok: false, reason: 'Sale-only item' };
@@ -1714,7 +1721,7 @@ function scanDone(code) {
 function scanManual(v) {
   const code = codeFromScan(v) || String(v || '').trim().toUpperCase();
   if (!code) return;
-  if (!item(code)) { const el = $('#scanStat'); if (el) el.textContent = `No item with code ${code}`; return; }
+  if (!item(code) || item(code).removed) { const el = $('#scanStat'); if (el) el.textContent = `No item with code ${code}`; return; }
   scanDone(code);
 }
 async function scanModal(onCode) {
@@ -2010,7 +2017,8 @@ function typeChips(cur, onclickTpl, pool) {
   return `<div class="chips scroll" style="margin-bottom:12px">${[['all', 'All types'], ...Object.entries(TYPES).map(([k, v]) => [k, v.short])].map(([k, l]) => `<button class="chip ${cur === k ? 'on' : ''}" onclick="${onclickTpl.replace('%', k)}">${l} <span class="tiny muted">${n(k)}</span></button>`).join('')}</div>`;
 }
 function addItemModal() {
-  const nextCode = t => t + pad(Math.max(0, ...DB.items.filter(i => i.type === t).map(i => +i.code.slice(t.length) || 0)) + 1);
+  // follows the shop's own style: G001 (padded) or GBC17 (plain), whichever this type already uses
+  const nextCode = t => { const cs = DB.items.filter(i => i.type === t).map(i => i.code.slice(t.length)), n = Math.max(0, ...cs.map(x => +x || 0)) + 1; const all = DB.items.map(i => (i.code.match(/\d+$/) || [''])[0]).filter(Boolean); return t + ((cs.length ? cs.some(x => /^0\d/.test(x)) : all.filter(x => /^0/.test(x)).length * 2 > all.length) ? String(n).padStart(3, '0') : String(n)); };
   openModal({
     title: 'Add inventory item', wide: true,
     body: `<div class="grid g2">
@@ -2043,7 +2051,7 @@ function saveNewItem() {
 /* ---------- ITEM DETAIL ---------- */
 const ITEMX = { all: null, log: null };
 function scrItem(code) {
-  const it = item(code); if (!it) return { t: 'Not found', html: emptyState('Item not found', `<a href="#/inventory">Back to inventory</a>`) };
+  const it = item(code); if (!it || it.removed) return { t: 'Not found', html: emptyState(it ? `${esc(code)} is no longer in inventory` : 'Item not found', `${it ? 'Old bookings still show it. ' : ''}<a href="#/inventory">Back to inventory</a>`) };
   if (code === 'G021') tourMark('g021');
   const st = istate(it);
   const bs = bookingsFor(code).filter(b => !['cancelled', 'void'].includes(b.status));
@@ -2539,14 +2547,18 @@ function wizAddPkg(key) {
   const picks = []; let colour = null;
   const slots = [...p.slots];
   const free = t => DB.items.filter(it => it.type === t && it.mode !== 'sale' && !used.has(it.code) && availability(it.code, W.pickupAt, W.returnBy).ok);
-  // no separate Ghagra or Choli free: one GC (Ghagra-Choli) set fills both slots
-  if (slots.includes('G') && slots.includes('C') && (!free('G').length || !free('C').length) && free('GC').length) { slots.splice(slots.indexOf('G'), 1, 'GC'); slots.splice(slots.indexOf('C'), 1); }
+  // a set fills several slots when the separate pieces are not free: GBC = G+C+D, GB / GC = G+C
+  const SETS = [['GBC', ['G', 'C', 'D']], ['GB', ['G', 'C']], ['GC', ['G', 'C']]];
+  for (const [set, parts] of SETS) {
+    if (!parts.every(t => slots.includes(t)) || parts.every(t => free(t).length) || !free(set).length) continue;
+    slots.splice(slots.indexOf(parts[0]), 1, set); parts.slice(1).forEach(t => slots.splice(slots.indexOf(t), 1));
+  }
   for (let si = 0; si < slots.length; si++) {
     const t = slots[si];
     const cands = free(t);
     const best = (colour && cands.find(it => it.colour === colour)) || cands.find(it => it.condition === 'Excellent') || cands[0];
     if (!best) { toast(`No ${TYPES[t].short} free for these dates`, 'bad'); return; }
-    if (t === 'G' || t === 'GC') colour = best.colour; used.add(best.code); picks.push(best.code);
+    if (['G', 'GC', 'GB', 'GBC'].includes(t)) colour = best.colour; used.add(best.code); picks.push(best.code);
   }
   W.pkgs.push({ key: p.key, name: p.name, price: p.price }); picks.forEach(c => W.lines.push({ code: c, pkg: pi })); W.payAmt = null;
   wizRefresh(); toast(`${p.name} added — ${picks.join(' + ')}. Swap any piece below.`, 'good');
@@ -2896,7 +2908,7 @@ function scrSaleNew(r) {
       ${typeChips(SALEF.type, "SALEF.type='%';render()", all)}
       <div class="card"><div class="list">${cands.map(it => { const bl = saleBlock(it); return `<div class="lrow ${bl ? '' : 'click'}" ${bl ? 'style="opacity:.6"' : `onclick="go('#/sale/new?code=${it.code}')"`}>${thumb(it)}<div class="grow"><span class="code">${it.code}</span> <b>${esc(it.name)}</b><div class="tiny muted">${MODES[it.mode]} · ${esc(it.size)}</div>${bl ? `<div class="tiny" style="color:var(--danger);font-weight:700">✕ ${esc(bl)}</div>` : ''}</div><b>${rs(it.sale)}</b>${bl ? '' : ic('right', 18)}</div>`; }).join('')}</div></div>` };
   }
-  const it = item(code); if (!it) return { t: 'Sale', html: emptyState('Item not found') };
+  const it = item(code); if (!it || it.removed) return { t: 'Sale', html: emptyState('Item not found') };
   const bl = saleBlock(it);
   if (bl) return { t: 'Sale', html: `<div class="card lock"><div class="ic">${ic('alert', 30)}</div><h3 style="font-size:20px">${it.code} can’t be sold right now</h3><p class="muted">${esc(bl)}</p><p class="small">This protects customers who have already booked the piece.</p><div class="row" style="justify-content:center"><button class="btn btn-lg" onclick="go('#/item/${code}')">Back to item</button><button class="btn btn-lg btn-primary" onclick="go('#/item/G014')">Try G014 instead</button></div></div>` };
   if (!SALE || SALE.code !== code) SALE = { code, customerId: null, cq: '', price: it.sale, voucher: null, vmsg: '', vok: false, mode: 'UPI', walkIn: false };
@@ -3313,6 +3325,11 @@ function fromTables(t) {
   db.seq.sale = Math.max(500, maxN(db.sales.map(s => s.id), /(\d+)$/));
   db.seq.customer = Math.max(1000, maxN(db.customers.map(c => c.id), /(\d+)$/));
   db.imap = Object.fromEntries(db.items.map(i => [i.code, i]));
+  // Old bookings / sales can point at an item code that was renamed or deleted in the sheet.
+  // Keep a read-only stand-in so those records still open; it never appears in inventory and cannot be booked.
+  const ghost = code => ({ code, type: (Object.keys(TYPES).filter(k => code.startsWith(k)).sort((a, b) => b.length - a.length)[0]) || 'G', collection: 'garba', colour: '', hex: '#9a8f94', style: '', size: '', name: 'Removed item ' + code, rent: 0, sale: 0, deposit: 0, cost: 0, mode: 'rent', condition: '', status: 'in', notes: 'This code is no longer in the Items tab (renamed or deleted).', prev: { rentals: 0, revenue: 0 }, repairCost: 0, addedOn: '', log: [], removed: true });
+  db.bookings.forEach(b => b.lines.forEach(l => { if (!db.imap[l.code]) db.imap[l.code] = ghost(l.code); }));
+  db.sales.forEach(s => { if (s.code && !db.imap[s.code]) db.imap[s.code] = ghost(s.code); });
   return db;
 }
 
