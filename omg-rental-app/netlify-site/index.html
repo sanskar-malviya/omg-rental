@@ -953,7 +953,7 @@ function art(type, hex, size = 100) {
     <path d="M50 26v64M44 26l-12 62M56 26l12 62" stroke="rgba(0,0,0,.13)" stroke-width="1.2"/>
     <path d="M17.2 73.5q32.8 12 65.6 0L86 81q-36 13-72 0z" fill="${gold}"/>
     <path d="M18 76.5q32 11.5 64 0" stroke="#fff" stroke-width="2.4" stroke-dasharray="0.1 5" stroke-linecap="round"/>`;
-  else if (type === 'C') body = `
+  else if (type === 'C' || type === 'B') body = `
     <path d="M31 28q9-6 19 1 10-7 19-1l15 14-9 8-5-5v24q-20 7-40 0V45l-5 5-9-8z" fill="${hex}"/>
     <path d="M31 28q9-6 19 1 10-7 19-1l15 14-9 8-5-5v24q-20 7-40 0V45l-5 5-9-8z" fill="url(#pdots)"/>
     <path d="M41 28q9 16 18 0" stroke="${gold}" stroke-width="3" fill="none"/>
@@ -999,6 +999,7 @@ const TYPES = {
   GC: { name: 'Ghagra-Choli Set', short: 'GC Set' },
   GBC: { name: 'Ghagra-Blouse-Chunni Set (full set)', short: 'GBC Set' },
   GB: { name: 'Ghagra-Blouse Set (2-piece)', short: 'GB Set' },
+  B: { name: 'Blouse', short: 'Blouse' },
   D: { name: 'Dupatta', short: 'Dupatta' },
   J: { name: 'Jewellery', short: 'Jewellery' },
 };
@@ -1010,6 +1011,8 @@ function colourHex(hex, colour) {
   const c = String(colour || '').toLowerCase(), k = Object.keys(BASIC_COLOURS).filter(k => c.includes(k)).sort((a, b) => c.indexOf(a) - c.indexOf(b) || b.length - a.length)[0];
   return k ? BASIC_COLOURS[k] : (/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#b04a8a');
 }
+/* A category typed into the sheet that the app does not know yet still works: it gets its own filter chip named after its code. */
+function ensureTypes(codes) { codes.forEach(t => { t = String(t || '').trim(); if (t && !TYPES[t]) TYPES[t] = { name: t, short: t }; }); }
 const COLOURS = {
   'Parrot Green': '#3f9b4a', 'Rani Pink': '#d6246e', 'Royal Blue': '#2c4fa3', 'Marigold': '#e39a17', 'Maroon': '#7d1d34',
   'Peacock Blue': '#0f7c83', 'Mustard': '#c29a1e', 'Black': '#2b2b2b', 'Red': '#c62c2c', 'Purple': '#6a3a9c',
@@ -1163,6 +1166,8 @@ function seedData() {
 let DB, NOW, CUR;
 const S = () => DB.settings;
 const item = code => DB.imap[code];
+/* code typed / scanned / linked → the item's real code (ignores case, spaces and dashes: g25, G 25, G-25) */
+const findCode = c => { c = String(c || '').trim(); if (DB.imap[c]) return c; const k = x => String(x).toUpperCase().replace(/[\s-]/g, ''), it = DB.items.find(i => k(i.code) === k(c)); return it ? it.code : null; };
 const cust = id => DB.customers.find(c => c.id === id);
 const bk = no => DB.bookings.find(b => b.no === no);
 const CLOSED_STATES = ['closed', 'cancelled', 'void'];
@@ -1685,6 +1690,7 @@ function switchUser(id) {
 function globalSearch(v) {
   v = v.trim(); if (!v) return;
   const sc = codeFromScan(v); if (sc && item(sc)) { GQ = ''; return go('#/item/' + sc); }
+  const fc = findCode(v); if (fc && !item(fc).removed) { GQ = ''; return go('#/item/' + encodeURIComponent(fc)); }
   const up = v.toUpperCase().replace(/\s/g, '');
   if (item(up)) { GQ = ''; return go('#/item/' + up); }
   const bm = up.match(/^(OMG-?)?0*(\d{1,5})$/);
@@ -2060,6 +2066,7 @@ function saveNewItem() {
 /* ---------- ITEM DETAIL ---------- */
 const ITEMX = { all: null, log: null };
 function scrItem(code) {
+  code = findCode(code) || code;
   const it = item(code); if (!it || it.removed) return { t: 'Not found', html: emptyState(it ? `${esc(code)} is no longer in inventory` : 'Item not found', `${it ? 'Old bookings still show it. ' : ''}<a href="#/inventory">Back to inventory</a>`) };
   if (code === 'G021') tourMark('g021');
   const st = istate(it);
@@ -2557,7 +2564,7 @@ function wizAddPkg(key) {
   const slots = [...p.slots];
   const free = t => DB.items.filter(it => it.type === t && it.mode !== 'sale' && !used.has(it.code) && availability(it.code, W.pickupAt, W.returnBy).ok);
   // a set fills several slots when the separate pieces are not free: GBC = G+C+D, GB / GC = G+C
-  const SETS = [['GBC', ['G', 'C', 'D']], ['GB', ['G', 'C']], ['GC', ['G', 'C']]];
+  const SETS = [['GBC', ['G', 'C', 'D']], ['GB', ['G', 'C']], ['GC', ['G', 'C']], ['B', ['C']]];
   for (const [set, parts] of SETS) {
     if (!parts.every(t => slots.includes(t)) || parts.every(t => free(t).length) || !free(set).length) continue;
     slots.splice(slots.indexOf(parts[0]), 1, set); parts.slice(1).forEach(t => slots.splice(slots.indexOf(t), 1));
@@ -3334,6 +3341,7 @@ function fromTables(t) {
   db.seq.booking = Math.max(100, maxN(db.bookings.map(b => b.no), /(\d+)$/));
   db.seq.sale = Math.max(500, maxN(db.sales.map(s => s.id), /(\d+)$/));
   db.seq.customer = Math.max(1000, maxN(db.customers.map(c => c.id), /(\d+)$/));
+  ensureTypes(db.items.map(i => i.type));
   db.imap = Object.fromEntries(db.items.map(i => [i.code, i]));
   // Old bookings / sales can point at an item code that was renamed or deleted in the sheet.
   // Keep a read-only stand-in so those records still open; it never appears in inventory and cannot be booked.
@@ -3686,6 +3694,8 @@ function revShow() {
   document.body.appendChild(w);
 }
 const PUBQ = { type: 'all', q: '', date: '', month: null, ph: 0, code: null, colour: '', size: '', sort: 'free', free: false, filt: false };
+/* QR / link code → the item's code as written in the sheet (ignores case, spaces and dashes: g25, G 25, G-25 all find it) */
+const pubCode = c => { c = c.trim(); const k = x => String(x).toUpperCase().replace(/[\s-]/g, ''); const it = PUB.items.find(i => i.code === c) || PUB.items.find(i => k(i.code) === k(c)); return it ? it.code : c.toUpperCase(); };
 const isPublicRoute = () => /^#\/(item\/|catalog)/.test(location.hash);
 async function renderPublic() {
   document.body.classList.add('login-mode', 'public-mode');
@@ -3694,15 +3704,16 @@ async function renderPublic() {
     if (!PUB) P.innerHTML = `<div class="login-card card pad" style="text-align:center"><div class="logo" style="margin:0 auto 12px;width:56px;height:56px">OMG</div><h1 class="pg">OMG Rental</h1><p class="muted">Loading the catalogue…</p></div>`;
     try {
       const r = await api('catalog'); if (!r.ok) throw new Error(r.error || 'error');
-      PUB = r; PUB.loadedAt = Date.now(); Object.assign(DB.settings, r.settings || {});
+      PUB = r; PUB.loadedAt = Date.now(); ensureTypes(r.items.map(i => i.type)); Object.assign(DB.settings, r.settings || {});
     } catch (e) {
       if (!PUB) { P.innerHTML = `<div class="login-card card pad stack" style="text-align:center"><div class="logo" style="margin:0 auto;width:56px;height:56px">OMG</div><h1 class="pg">OMG Rental</h1><div class="banner danger">${ic('alert')} <span>${/Unknown action/.test(e.message) ? 'The catalogue is not switched on yet.' : 'Could not load the catalogue. Check the internet connection.'}</span></div><button class="btn btn-lg" onclick="renderPublic()">Try again</button><button class="btn btn-ghost btn-sm" onclick="go('#/dashboard')">Staff login</button></div>`; return; }
     }
   }
   if (TOKEN || !isPublicRoute()) return;   // navigated away while loading
-  const m = location.hash.match(/^#\/item\/([A-Za-z0-9-]+)/);
+  let h = location.hash; try { h = decodeURIComponent(h); } catch (e) { }
+  const m = h.match(/^#\/item\/([^?#]+)/);
   document.body.classList.toggle('pub-item', !!m);
-  P.innerHTML = '<div class="ptoran" aria-hidden="true"></div>' + pubTop() + (m ? pubItem(m[1].toUpperCase()) : pubList()) + pubStore() + pubFoot();
+  P.innerHTML = '<div class="ptoran" aria-hidden="true"></div>' + pubTop() + (m ? pubItem(pubCode(m[1])) : pubList()) + pubStore() + pubFoot();
   revMaybe(!!m);
 }
 const pubHex = it => colourHex(it.hex, it.colour);
