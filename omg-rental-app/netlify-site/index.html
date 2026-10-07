@@ -2033,7 +2033,7 @@ function typeChips(cur, onclickTpl, pool) {
 }
 function addItemModal() {
   // follows the shop's own style: G001 (padded) or GBC17 (plain), whichever this type already uses
-  const nextCode = t => { const cs = DB.items.filter(i => i.type === t).map(i => i.code.slice(t.length)), n = Math.max(0, ...cs.map(x => +x || 0)) + 1; const all = DB.items.map(i => (i.code.match(/\d+$/) || [''])[0]).filter(Boolean); return t + ((cs.length ? cs.some(x => /^0\d/.test(x)) : all.filter(x => /^0/.test(x)).length * 2 > all.length) ? String(n).padStart(3, '0') : String(n)); };
+  const nextCode = t => { const cs = DB.items.filter(i => i.type === t).map(i => i.code), dg = cs.map(c => (c.match(/(\d+)\s*$/) || ['', ''])[1]), n = Math.max(0, ...dg.map(x => +x || 0)) + 1; const all = DB.items.map(i => (i.code.match(/\d+$/) || [''])[0]).filter(Boolean); const padded = cs.length ? dg.some(x => /^0\d/.test(x)) : all.filter(x => /^0/.test(x)).length * 2 > all.length; const dash = cs.filter(c => /^[A-Za-z]+[-\s]\d/.test(c)).length * 2 > cs.length; return t + (dash ? '-' : '') + (padded ? String(n).padStart(3, '0') : String(n)); };
   openModal({
     title: 'Add inventory item', wide: true,
     body: `<div class="grid g2">
