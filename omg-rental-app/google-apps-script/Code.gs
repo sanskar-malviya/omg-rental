@@ -432,11 +432,11 @@ var TEMPLATES = {
     blocks: ['changes', 'dates', 'items', 'money'], cta: ['call', 'whatsapp'] },
   pickup_tomorrow: { name: 'Pickup reminder — day before', trigger: 'Day before pickup, at the set time', kind: 'auto', timeKey: 'pickupTomorrowTime',
     subject: 'Your OMG Rental pickup is tomorrow — {{booking_number}}', heading: 'Your pickup is tomorrow',
-    intro: 'Hi {{customer_name}}, your outfit will be ready for collection tomorrow. Pickup window: {{pickup_time}}.',
+    intro: 'Hi {{customer_name}}, your outfit will be ready for collection tomorrow, {{pickup_time}}. Please return it the next day before {{return_time}}; a late fee applies after that.',
     blocks: ['booking', 'dates', 'items', 'balance'], cta: ['call', 'whatsapp', 'directions'] },
   pickup_today: { name: 'Pickup day — outfit ready', trigger: 'Morning of pickup, at the set time', kind: 'auto', timeKey: 'pickupTodayTime',
     subject: 'Your OMG Rental outfit is ready — pickup today', heading: 'Your outfit is ready',
-    intro: 'Hi {{customer_name}}, your outfit is ready! Your pickup window is {{pickup_time}} today. Please bring a photo ID, and the balance or deposit if it is still pending.',
+    intro: 'Hi {{customer_name}}, your outfit is ready! You can pick it up today {{pickup_time}}. Please bring a photo ID, and the balance or deposit if it is still pending. Return it tomorrow before {{return_time}}; a late fee applies after that.',
     blocks: ['booking', 'items', 'balance'], cta: ['call', 'whatsapp', 'directions'] },
   payment_due: { name: 'Balance due reminder', trigger: 'Day before pickup, if a balance is unpaid', kind: 'auto', timeKey: 'paymentDueTime',
     subject: 'Payment reminder — Booking {{booking_number}}', heading: 'A balance is pending',
@@ -561,11 +561,10 @@ function emailVars(ctx, em) {
   var b = ctx.b || {}, c = ctx.c || {}, m = moneyOf(ctx), r = ctx.ret || {}, app = em.app || {};
   var damage = ctx.retItems.reduce(function (a, x) { return a + (+x.charge || 0); }, 0);
   var itemList = ctx.lines.map(function (l) { var it = ctx.items[l.item_code] || {}; return l.item_code + (it.name ? ' ' + it.name : ''); }).join(', ');
-  var pickupEnd = app.pickupEnd || '15:00';
   var v = {
     customer_name: String(c.name || 'there').split(' ')[0], customer_full_name: c.name || '', booking_number: b.booking_no || (ctx.sale && ctx.sale.sale_id) || '',
     reference_number: b.booking_no || (ctx.sale && ctx.sale.sale_id) || '', item_list: itemList,
-    pickup_date: fmtD(b.pickup_at, 'EEE, d MMMM yyyy'), pickup_time: b.pickup_at ? fmtD(b.pickup_at, 'h:mm a') + ' – ' + hmLabel(pickupEnd) : '',
+    pickup_date: fmtD(b.pickup_at, 'EEE, d MMMM yyyy'), pickup_time: b.pickup_at ? 'after ' + fmtD(b.pickup_at, 'h:mm a') : '',
     event_date: fmtD(b.event_date, 'EEE, d MMMM yyyy'), return_date: fmtD(b.return_by, 'EEE, d MMMM yyyy'), return_time: fmtD(b.return_by, 'h:mm a'),
     rental_amount: rsE(m.rentNet), discount: rsE(m.discount), deposit_amount: rsE(m.depDue), deposit_paid: rsE(m.depPaid),
     damage_charge: rsE(damage), late_fee: rsE(r.late_fee_waived === 'yes' ? 0 : (+r.late_fee || +b.late_flag_amount || 0)), refund_amount: rsE(+r.refund || 0),
@@ -615,7 +614,7 @@ function renderBlock(name, ctx, v, em, meta) {
       m.balance > 0 ? eRow('Balance due', rsE(m.balance), true, '#b3261e') : '']));
     case 'balance': if (!m || m.balance <= 0) return ''; return eCard('Payment', eTable([eRow('Balance to pay at pickup', rsE(m.balance), true, '#b3261e'), eRow('Accepted', 'Cash · UPI · Card')]));
     case 'instructions': return eCard('Good to know', '<ul style="margin:0;padding-left:18px;font:14px/1.7 Arial,Helvetica,sans-serif;color:' + BR.ink + '">' +
-      '<li>Pickup on your event day, ' + e(v.pickup_time) + '. Please bring a photo ID.</li><li>Return the next day <b>before ' + e(v.return_time) + '</b>. Late returns are charged as per our rental terms.</li>' +
+      '<li>Pickup on your event day, <b>' + e(v.pickup_time) + '</b>. Please bring a photo ID.</li><li>Return the next day <b>before ' + e(v.return_time) + '</b>. After that a late fee is charged.</li>' +
       '<li>Please avoid perfume, food and drink stains on the outfit. Do not wash or iron it; we take care of cleaning.</li><li>Your deposit is refunded after the items are returned and checked.</li></ul>');
     case 'returnrules': return eCard('Return', '<div style="font:15px/1.6 Arial,Helvetica,sans-serif;color:' + BR.ink + '">Return deadline: <b style="color:' + BR.maroon + '">' + e(v.return_date) + ', before ' + e(v.return_time) + '</b><br><span style="color:' + BR.muted + ';font-size:13px">Please bring every piece, including jewellery and accessories. Late returns are charged as per the rental terms.</span></div>');
     case 'latefee': var lf = +b.late_flag_amount || 0; return eCard('Late charge', eTable([eRow('Return deadline', e(v.return_date) + ', ' + e(v.return_time)), eRow('Late charge', rsE(lf), true, '#b3261e'), eRow('Security deposit paid', rsE(m.depPaid)), eRow('Deposit after late charge', rsE(Math.max(0, m.depPaid - lf)), true)]));

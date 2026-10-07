@@ -1256,6 +1256,8 @@ function festivalNights() {
 }
 const festivalNightOf = d => (festivalNights().find(f => sameDay(f.d, d)) || {}).n || 0;
 /* Standard rental length in hours = pickup time on day 0 → return deadline next day (e.g. 2 PM → 12 PM = 22 h) */
+/* What customers are told about pickup: "after 3:00 PM" (the start of the pickup time in Settings) */
+const pickupWhen = () => 'after ' + fHHMM(S().pickupStart);
 function standardHours() { const s = S(); const t = x => { const [h, m] = x.split(':').map(Number); return h + m / 60; }; return 24 - t(s.pickupStart) + t(s.returnDeadline); }
 
 /* ---------- Pricing ---------- */
@@ -1613,10 +1615,10 @@ function emptyState(t, s = '') { return `<div class="empty"><b>${t}</b>${s}</div
 function waText(b, kind) {
   const c = cust(b.customerId), m = money(b), s = S();
   const items = b.lines.map(l => `${l.code} ${item(l.code).name}`).join('\n   ');
-  if (kind === 'confirm') return `Namaste ${firstName(c.name)} 🙏\nYour OMG Rental booking ${b.no} is confirmed.\n\n👗 Items:\n   ${items}\n\n📦 Pickup: ${fDate(b.pickupAt)} · ${fHHMM(s.pickupStart)}–${fHHMM(s.pickupEnd)}\n💃 Event: ${fDate(b.eventDate)}\n⏰ Return: ${fDate(b.returnBy)} · before ${fTime(b.returnBy)}\n\nRent: ${rs(m.rentNet)} · Deposit: ${rs(b.depositDue)} (refundable)\n${m.outstanding ? `Balance to pay at pickup: ${rs(m.outstanding)}\n` : ''}Late return: ${lateRuleText().replace('After', 'after')}.\nPlease bring a photo ID at pickup.\n— OMG Rental, Indore`;
+  if (kind === 'confirm') return `Namaste ${firstName(c.name)} 🙏\nYour OMG Rental booking ${b.no} is confirmed.\n\n👗 Items:\n   ${items}\n\n📦 Pickup: ${fDate(b.pickupAt)} · ${pickupWhen()}\n💃 Event: ${fDate(b.eventDate)}\n⏰ Return: ${fDate(b.returnBy)} · before ${fTime(b.returnBy)} (late fee after that)\n\nRent: ${rs(m.rentNet)} · Deposit: ${rs(b.depositDue)} (refundable)\n${m.outstanding ? `Balance to pay at pickup: ${rs(m.outstanding)}\n` : ''}Late return: ${lateRuleText().replace('After', 'after')}.\nPlease bring a photo ID at pickup.\n— OMG Rental, Indore`;
   if (kind === 'reminder') return `Hi ${firstName(c.name)}, hope you enjoyed Garba! 💃\nReminder: please return your OMG Rental outfit (${b.no}) today before ${fTime(b.returnBy)}.\nYour deposit of ${rs(m.held)} will be refunded after a quick check.\n— OMG Rental`;
   if (kind === 'overdue') { const lf = lateFee(b.returnBy, NOW); return `Hi ${firstName(c.name)}, your OMG Rental return (${b.no}) was due before ${fTime(b.returnBy)} on ${fDateS(b.returnBy)}.\nIt is now ${fTime(NOW)}. A late fee of ${rs(lf.fee || S().lateAmount)} applies as per our policy.\nPlease return the outfit as soon as possible, or reply with your expected time.\n— OMG Rental`; }
-  if (kind === 'pickup') return `Hi ${firstName(c.name)}! Your Garba outfit (${b.no}) is ready for pickup today between ${fHHMM(s.pickupStart)} and ${fHHMM(s.pickupEnd)}.\n${m.outstanding ? `Balance due: ${rs(m.outstanding)}. ` : ''}Please bring a photo ID.\n— OMG Rental`;
+  if (kind === 'pickup') return `Hi ${firstName(c.name)}! Your Garba outfit (${b.no}) is ready for pickup today ${pickupWhen()}.\nPlease return it tomorrow before ${fTime(b.returnBy)}; a late fee applies after that.\n${m.outstanding ? `Balance due: ${rs(m.outstanding)}. ` : ''}Please bring a photo ID.\n— OMG Rental`;
   if (kind === 'refund') { const r = b.returnInfo; return `Thank you ${firstName(c.name)}! Your return for ${b.no} is complete.\nDeposit: ${rs(m.depPaid)}${r.lines && sum(Object.values(r.lines), x => +x.charge) ? `\nDamage: −${rs(sum(Object.values(r.lines), x => +x.charge))}` : ''}${r.lateFee ? `\nLate fee: −${rs(r.lateFee)}` : ''}\nRefund: ${rs(r.refund)} via ${r.refundMode || '—'}\n\n🎁 Use RENT2SALON for 20% off Garba makeup at OMG Salon.\n— OMG Rental`; }
   return '';
 }
@@ -2207,7 +2209,7 @@ async function receiptPNG(b) {
   y += 40;
   const kv = (k, v, bold, color) => { x.fillStyle = '#555'; F('400', 20); x.fillText(k, P, y); x.textAlign = 'right'; x.fillStyle = color || '#111'; F(bold ? '800' : '600', 20); x.fillText(fit(v, W - 2 * P - 260), W - P, y); x.textAlign = 'left'; y += 34; };
   kv('Customer', c.name, true); kv('Mobile', fMob(c.mobile) + (c.id ? ' · ' + c.id : ''));
-  kv('Pickup', fDate(b.pickupAt) + ' · ' + fHHMM(s.pickupStart) + '–' + fHHMM(s.pickupEnd));
+  kv('Pickup', fDate(b.pickupAt) + ' · ' + pickupWhen());
   kv('Event', fDate(b.eventDate));
   kv('Return by', fDate(b.returnBy) + ' · before ' + fTime(b.returnBy), true, '#7a1f4b');
   y += 4; rule(true); y += 40;
@@ -2651,7 +2653,7 @@ function wizStep4() {
       <div class="summary"><div class="line"><span>Rent payable${q.discount ? ` (${q.manual ? 'offer price, ' + q.discountPct + '% off' : 'after ' + W.voucher})` : ''}</span><b>${rs(q.rentNet)}</b></div><div class="line"><span>Security deposit</span><b>${rs(wDeposit(q))}</b></div>
         <div class="line t"><span>Collecting now · ${W.payMode}</span><span>${rs(pay)}</span></div>${bal > 0 ? `<div class="line" style="color:var(--danger)"><span>Balance due at pickup</span><b>${rs(bal)}</b></div>` : ''}</div>
       <div class="field"><label>Booking notes (optional)</label><input class="input" id="wnotes" value="${esc(W.notes)}" onchange="W.notes=this.value" placeholder="e.g. customer will try the choli at pickup"></div>
-      <label class="check" style="align-items:flex-start"><input type="checkbox" ${W.ack ? 'checked' : ''} onchange="W.ack=this.checked;$('#wconfirm').disabled=!this.checked"><span>Customer informed: pickup <b>${fHHMM(s.pickupStart)}–${fHHMM(s.pickupEnd)}</b>, return <b>before ${fTime(W.returnBy)} on ${fDate(W.returnBy)}</b>, late fee: ${esc(lateRuleText())}.</span></label>
+      <label class="check" style="align-items:flex-start"><input type="checkbox" ${W.ack ? 'checked' : ''} onchange="W.ack=this.checked;$('#wconfirm').disabled=!this.checked"><span>Customer informed: pickup <b>${pickupWhen()}</b>, return <b>before ${fTime(W.returnBy)} on ${fDate(W.returnBy)}</b>, late fee: ${esc(lateRuleText())}.</span></label>
     </div></div>
     <div class="row"><button class="btn btn-lg" onclick="wizGoto(3)">${ic('left', 18)} Back</button><span class="grow"></span><button class="btn btn-primary btn-xl" id="wconfirm" ${W.ack ? '' : 'disabled'} onclick="wizConfirm()">${ic('check', 20, 2.6)} Confirm ${pay ? `· Collect ${rs(pay)}` : 'booking'}</button></div>`;
 }
@@ -3119,7 +3121,7 @@ function scrSettings(r) {
   if (tab === 'timings') {
     const ex = datesForEvent((festivalNights()[0] || {}).d || addDays(sod(NOW), 1));
     body = `<div class="grid g2"><div class="card pad stack"><h3>Pickup & return rules</h3>
-      <div class="grid g2"><div class="field"><label>Pickup window starts</label>${inp('pickupStart', 'time')}</div><div class="field"><label>Pickup window ends</label>${inp('pickupEnd', 'time')}</div></div>
+      <div class="grid g2"><div class="field"><label>Pickup from</label>${inp('pickupStart', 'time')}<div class="hint">Customers are told “pickup after this time”.</div></div><div class="field"><label>Pickups close at</label>${inp('pickupEnd', 'time')}<div class="hint">Shop closing time for pickups.</div></div></div>
       <div class="field"><label>Return deadline (on return date)</label>${inp('returnDeadline', 'time')}<div class="hint">After this time the dashboard shows the rental as OVERDUE.</div></div>
       <div class="grid g2"><div class="field"><label>Turnaround buffer (hours)</label>${inp('bufferHours', 'number', 'min="0" max="48"')}<div class="hint">Gap between a return deadline and the next pickup of the same piece — for inspection & steaming.</div></div>
       <div class="field"><label>“Reserved” look-ahead (hours)</label>${inp('reserveWindowHours')}<div class="hint">Show an item as Reserved when its next pickup is this close.</div></div></div>
@@ -3848,7 +3850,7 @@ function pubItem(code) {
         ${nights.length && it.mode !== 'sale' ? `<div class="pfree"><b>${freeNights}</b> of ${nights.length} ${esc(S().festivalName || 'Navratri')} nights still available</div>` : ''}</div>
       <div class="card pad summary glass"><h3 style="margin-bottom:6px">Details</h3>
         ${row('Type', esc(pubType(it)))}${row('Colour', `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${hex};vertical-align:-1px;margin-right:6px"></span>${esc(it.colour || '')}`)}${row('Size', esc(it.size))}${row('Design', esc(it.style))}${row('Collection', esc(it.collection || ''))}${row('Available', PUB_MODE[it.mode] || '')}</div>
-      ${it.mode === 'sale' ? '' : `<div class="card pad glass"><h3 style="margin-bottom:4px">Availability</h3><p class="small muted" style="margin:0 0 12px">Pick up on your event day from ${fTime(atTime(new Date(), S().pickupStart))}, return the next day by ${fTime(atTime(new Date(), S().returnDeadline))}.</p>
+      ${it.mode === 'sale' ? '' : `<div class="card pad glass"><h3 style="margin-bottom:4px">Availability</h3><p class="small muted" style="margin:0 0 12px">Pick up on your event day after ${fTime(atTime(new Date(), S().pickupStart))}, return the next day before ${fTime(atTime(new Date(), S().returnDeadline))}. A late fee applies after that.</p>
         ${nights.length ? `<div class="lbl">${esc(S().festivalName || 'Festival')}</div><div class="chips scroll" style="margin-bottom:14px">${nights.map(f => `<span class="chip ${pubFree(code, f.d) ? '' : 'off'}" style="${pubFree(code, f.d) ? 'background:var(--good-soft);color:var(--good)' : 'background:var(--danger-soft);color:var(--danger);text-decoration:line-through'}">Night ${f.n} · ${fDateS(f.d)}</span>`).join('')}</div>` : ''}
         ${pubCal(code)}</div>`}
       <div class="pnote glass">${ic('hanger')} <span>Like this piece? Visit <b>${esc(PUB.shop.name || 'OMG Rental')}</b> and ask for code <b class="mono">${it.code}</b>, or message us to check your date.</span></div>
